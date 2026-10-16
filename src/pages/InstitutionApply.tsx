@@ -24,6 +24,22 @@ const COUNTRIES: { code: string; name: string }[] = [
   { code: "AE", name: "United Arab Emirates" },
 ];
 
+// Tanzania regions (31 administrative regions as of 2024).
+const TZ_REGIONS: string[] = [
+  "Arusha", "Dar es Salaam", "Dodoma", "Geita", "Iringa", "Kagera",
+  "Kigoma", "Kilimanjaro", "Lindi", "Manyara", "Mara", "Mbeya",
+  "Morogoro", "Mtwara", "Mwanza", "Njombe", "Pemba North", "Pemba South",
+  "Pwani", "Rukwa", "Ruvuma", "Shinyanga", "Simiyu", "Singida",
+  "Songwe", "Tabora", "Tanga", "Unguja North", "Unguja South",
+  "Unguja West", "Katavi",
+];
+
+// Regions by country. Only Tanzania has a curated list for now; other
+// countries fall back to a free-text input.
+const REGIONS_BY_COUNTRY: Record<string, string[]> = {
+  TZ: TZ_REGIONS,
+};
+
 type Status = "idle" | "submitting" | "success" | "error";
 
 export default function InstitutionApply() {
@@ -50,8 +66,8 @@ export default function InstitutionApply() {
         institution_name: name.trim(),
         country_code: country.toUpperCase().trim(),
         contact_email: email.trim().toLowerCase(),
-        institution_code: institutionCode.trim() || null,
-        region: region.trim() || null,
+        institution_code: institutionCode.trim(),
+        region: region.trim(),
       });
       if (error) throw error;
       setStatus("success");
@@ -101,8 +117,10 @@ export default function InstitutionApply() {
             />
           </label>
 
-          <label className={labelClass}>Institution code <span className="font-normal text-slate-400">(optional)</span>
+          <label className={labelClass}>Institution code
             <input
+              required
+              minLength={1}
               maxLength={50}
               autoComplete="off"
               placeholder="e.g. UDSM-2026 or ministry-issued code"
@@ -118,23 +136,38 @@ export default function InstitutionApply() {
               required
               className={fieldClass}
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => { setCountry(e.target.value); setRegion(""); }}
               disabled={status === "submitting" || status === "success"}
             >
               {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name} ({c.code})</option>)}
             </select>
           </label>
 
-          <label className={labelClass}>Region / Province <span className="font-normal text-slate-400">(optional)</span>
-            <input
-              maxLength={100}
-              autoComplete="address-level1"
-              placeholder="e.g. Dar es Salaam"
-              className={fieldClass}
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              disabled={status === "submitting" || status === "success"}
-            />
+          <label className={labelClass}>Region / Province
+            {REGIONS_BY_COUNTRY[country] ? (
+              <select
+                required
+                className={fieldClass}
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                disabled={status === "submitting" || status === "success"}
+              >
+                <option value="">Select region</option>
+                {REGIONS_BY_COUNTRY[country].map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            ) : (
+              <input
+                required
+                minLength={1}
+                maxLength={100}
+                autoComplete="address-level1"
+                placeholder="Enter region or province"
+                className={fieldClass}
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                disabled={status === "submitting" || status === "success"}
+              />
+            )}
           </label>
 
           <label className={labelClass}>Official contact email

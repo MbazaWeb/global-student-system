@@ -55,7 +55,7 @@ insert into auth.users(id,email,raw_user_meta_data) values
  ('44444444-4444-4444-4444-444444444444','admin@test','{}'),
  ('55555555-5555-5555-5555-555555555555','instadmin@test','{}'),
  ('66666666-6666-6666-6666-666666666666','support@test','{}');
-insert into public.institutions(id,name,country_code,verification_status) values ('99999999-9999-9999-9999-999999999999','Test University','TZ','verified');
+insert into public.institutions(id,name,country_code,verification_status,institution_code,region) values ('99999999-9999-9999-9999-999999999999','Test University','TZ','verified','TEST-U','Dar es Salaam');
 insert into public.student_enrollments(student_id,institution_id,admission_number,verification_status)
  values ('11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999','ADM-1','verified');
 insert into public.user_role_assignments(user_id,role,institution_id) values
@@ -310,7 +310,7 @@ assert_denied "52 institution_staff cannot be inserted" "check constraint" "$OUT
 # ---------------------------------------------------------------------------
 
 # Create a second institution + admin owned by a different user.
-$P -c "insert into public.institutions(id,name,country_code,verification_status) values ('88888888-8888-8888-8888-888888888888','Other University','TZ','verified') on conflict do nothing;" >/dev/null
+$P -c "insert into public.institutions(id,name,country_code,verification_status,institution_code,region) values ('88888888-8888-8888-8888-888888888888','Other University','TZ','verified','OTHER-U','Arusha') on conflict do nothing;" >/dev/null
 $P -c "insert into public.user_role_assignments(user_id,role,institution_id) values ('33333333-3333-3333-3333-333333333333','institution_admin','88888888-8888-8888-8888-888888888888') on conflict do nothing;" >/dev/null
 $P -c "insert into public.student_enrollments(student_id,institution_id,admission_number) values ('11111111-1111-1111-1111-111111111111','88888888-8888-8888-8888-888888888888','ADM-OTHER') on conflict do nothing;" >/dev/null
 
@@ -325,7 +325,7 @@ assert_contains "53 institution admin directory name is Test University" "Test U
 # Institution admin cannot approve applications (54)
 # ---------------------------------------------------------------------------
 
-APP_ID=$($P -tAc "insert into public.institution_applications(institution_name,country_code,contact_email,status) values ('Fraud University','TZ','fraud@test','pending') returning id")
+APP_ID=$($P -tAc "insert into public.institution_applications(institution_name,country_code,contact_email,status,institution_code,region) values ('Fraud University','TZ','fraud@test','pending','FRAUD-U','Dar es Salaam') returning id")
 OUT=$(run_as "$I" "select public.gss_review_institution('$APP_ID','reviewing','Institution admin should not be able to review.');")
 assert_denied "54 institution admin cannot approve applications" "Not authorized" "$OUT"
 

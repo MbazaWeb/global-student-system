@@ -23,6 +23,18 @@ const COUNTRIES: { code: string; name: string }[] = [
   { code: "AE", name: "United Arab Emirates" },
 ];
 
+// Tanzania regions (31 administrative regions as of 2024).
+const TZ_REGIONS: string[] = [
+  "Arusha", "Dar es Salaam", "Dodoma", "Geita", "Iringa", "Kagera",
+  "Kigoma", "Kilimanjaro", "Lindi", "Manyara", "Mara", "Mbeya",
+  "Morogoro", "Mtwara", "Mwanza", "Njombe", "Pemba North", "Pemba South",
+  "Pwani", "Rukwa", "Ruvuma", "Shinyanga", "Simiyu", "Singida",
+  "Songwe", "Tabora", "Tanga", "Unguja North", "Unguja South",
+  "Unguja West", "Katavi",
+];
+
+const REGIONS_BY_COUNTRY: Record<string, string[]> = { TZ: TZ_REGIONS };
+
 const STATUS_STYLE: Record<string, string> = {
   verified: "bg-emerald-50 text-emerald-700",
   pending: "bg-amber-50 text-amber-800",
@@ -72,6 +84,8 @@ export default function InstitutionManagement() {
     e.preventDefault();
     if (cBusy) return;
     if (cName.trim().length < 3) { setCErr("Institution name must be at least 3 characters."); return; }
+    if (cCode.trim().length < 1) { setCErr("Institution code is required."); return; }
+    if (cRegion.trim().length < 1) { setCErr("Region / Province is required."); return; }
     if (cNote.trim().length < 10) { setCErr("A note of at least 10 characters is required (audit trail)."); return; }
     setCBusy(true); setCErr(""); setCSuccess("");
     try {
@@ -173,16 +187,23 @@ export default function InstitutionManagement() {
               </label>
               <div className="grid grid-cols-2 gap-4">
                 <label className={labelClass}>Country
-                  <select required className={fieldClass} value={cCountry} onChange={(e) => setCCountry(e.target.value)} disabled={cBusy}>
+                  <select required className={fieldClass} value={cCountry} onChange={(e) => { setCCountry(e.target.value); setCRegion(""); }} disabled={cBusy}>
                     {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name} ({c.code})</option>)}
                   </select>
                 </label>
-                <label className={labelClass}>Institution code <span className="font-normal text-slate-400">(optional)</span>
-                  <input maxLength={50} className={fieldClass} placeholder="e.g. UDSM-2026" value={cCode} onChange={(e) => setCCode(e.target.value)} disabled={cBusy} />
+                <label className={labelClass}>Institution code
+                  <input required minLength={1} maxLength={50} className={fieldClass} placeholder="e.g. UDSM-2026" value={cCode} onChange={(e) => setCCode(e.target.value)} disabled={cBusy} />
                 </label>
               </div>
-              <label className={labelClass}>Region / Province <span className="font-normal text-slate-400">(optional)</span>
-                <input maxLength={100} className={fieldClass} placeholder="e.g. Dar es Salaam" value={cRegion} onChange={(e) => setCRegion(e.target.value)} disabled={cBusy} />
+              <label className={labelClass}>Region / Province
+                {REGIONS_BY_COUNTRY[cCountry] ? (
+                  <select required className={fieldClass} value={cRegion} onChange={(e) => setCRegion(e.target.value)} disabled={cBusy}>
+                    <option value="">Select region</option>
+                    {REGIONS_BY_COUNTRY[cCountry].map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                ) : (
+                  <input required minLength={1} maxLength={100} className={fieldClass} placeholder="Enter region or province" value={cRegion} onChange={(e) => setCRegion(e.target.value)} disabled={cBusy} />
+                )}
               </label>
               <label className={labelClass}>Audit note <span className="font-normal text-slate-400">(10–2000 chars, required)</span>
                 <textarea required minLength={10} maxLength={2000} className={`${fieldClass} min-h-24`} placeholder="Explain why this institution is being created directly (e.g. verified authority out-of-band)." value={cNote} onChange={(e) => setCNote(e.target.value)} disabled={cBusy} />

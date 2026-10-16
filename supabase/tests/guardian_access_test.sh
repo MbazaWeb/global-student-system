@@ -52,7 +52,7 @@ insert into auth.users(id,email,raw_user_meta_data) values
  ('33333333-3333-3333-3333-333333333333','stranger@test','{}'),
  ('44444444-4444-4444-4444-444444444444','admin@test','{}'),
  ('55555555-5555-5555-5555-555555555555','instadmin@test','{}');
-insert into public.institutions(id,name,country_code,verification_status) values ('99999999-9999-9999-9999-999999999999','Test University','TZ','verified');
+insert into public.institutions(id,name,country_code,verification_status,institution_code,region) values ('99999999-9999-9999-9999-999999999999','Test University','TZ','verified','TEST-U','Dar es Salaam');
 insert into public.student_enrollments(student_id,institution_id,admission_number,verification_status)
  values ('11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999','ADM-1','verified');
 insert into public.user_role_assignments(user_id,role,institution_id) values
