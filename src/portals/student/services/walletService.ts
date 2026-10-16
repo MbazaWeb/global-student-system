@@ -1,5 +1,7 @@
 import type { MobileMoneyAdapter, PaymentRequest, PaymentResult } from "../../../integrations/mobile-money/MobileMoneyAdapter";
-import { getSandboxBalanceTzs, listSandboxActivity, mockMobileMoneyAdapter } from "../../../integrations/mobile-money/MockMobileMoneyAdapter";
+import { getSandboxBalanceTzs, listSandboxActivity, mockMobileMoneyAdapter, setSandboxUser } from "../../../integrations/mobile-money/MockMobileMoneyAdapter";
+import { supabase } from "../../../lib/supabase";
+import { bankPayload, consumeBankOtp, getDemoBank } from "../../../integrations/banking/demoBankSecurity";
 
 // Browser code never holds operator credentials. Every call is served by the sandbox today.
 // Going live means swapping this adapter for one that invokes a JWT-verified Supabase Edge Function,
@@ -11,11 +13,29 @@ export interface WalletSummary {
   activity: PaymentResult[];
   isSandbox: true;
 }
+async function loadStudentWallet() {
+  if(!supabase)throw new Error("Sign in to view your wallet.");
+  const {data,error}=await supabase.auth.getSession();
+  if(error)throw error;
+  if(!data.session?.user)throw new Error("Sign in to view your wallet.");
+  setSandboxUser(data.session.user.id);
+  return data.session.user.id;
+}
 
 export const walletService = {
-  requestPayment: (request: PaymentRequest) => adapter.requestPayment(request),
-  getPaymentStatus: (reference: string) => adapter.getPaymentStatus(reference),
+  async requestPayment(request: PaymentRequest) {
+    const userId=await loadStudentWallet();
+    if(request.provider==="bank"){
+      const bank=getDemoBank(userId);
+      if(!bank||bank.bank!==request.bankName?.trim()||bank.number!==request.accountNumber)throw new Error("Add and confirm this bank account in Profile first.");
+      consumeBankOtp(request.bankOtpToken,userId,bankPayload(bank.bank,bank.number,request.amountTzs,request.purpose,request.merchantCode));
+    }
+    return adapter.requestPayment(request);
+  },
+  async getPaymentStatus(reference: string) { await loadStudentWallet(); return adapter.getPaymentStatus(reference); },
   async getSummary(): Promise<WalletSummary> {
-    return { balanceTzs: getSandboxBalanceTzs(), activity: listSandboxActivity(), isSandbox: true };
+    await loadStudentWallet();
+    const activity=listSandboxActivity();
+    return { balanceTzs: getSandboxBalanceTzs(), activity, isSandbox: true };
   },
 };

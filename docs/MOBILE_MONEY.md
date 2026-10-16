@@ -4,7 +4,7 @@ The student wallet at `/student/wallet` offers top-ups and tuition or fee paymen
 
 ## Current state
 - UI: balance card, provider detection from the phone number, amount quick-picks, review step, approval waiting state with status polling, and recent activity.
-- Implementation: `src/integrations/mobile-money/MockMobileMoneyAdapter.ts`, an in-memory sandbox. It never writes to `gss_transactions` and moves no real money. Numbers ending in `0000` simulate a failed payment.
+- Implementation: `src/integrations/mobile-money/MockMobileMoneyAdapter.ts`, a sandbox with per-user browser-local activity. Current balance is completed top-ups minus completed Main Wallet payments. This editable browser data is not an authoritative financial ledger. It never writes to `gss_transactions` and moves no real money. Mobile numbers ending in `0000` simulate a failed payment.
 - Browser code holds no operator credentials.
 
 ## Going live (required before real money)
@@ -18,3 +18,16 @@ The student wallet at `/student/wallet` offers top-ups and tuition or fee paymen
 
 ## Phone rules
 Accepted forms: `+255 7XX…`, `255…`, `07XX…`, `7XX…`. Prefixes are listed in `PROVIDERS`.
+
+## Bank and merchant preview
+- `/student/bank` supports a demo bank connection with registered mobile, demo PIN `1234` and demo OTP `123456`. No real bank PIN is requested or validated, and no SMS is sent. Connections and OTP challenges clear on reload.
+- Bank payments require a fresh one-use demo OTP grant bound to user, bank account, amount, purpose and merchant code. Codes expire after five minutes and permit five attempts. These browser checks simulate UX only; production verification must run on the bank/server.
+- `/student/merchant` provides network and merchant-number lookup, camera/image QR scanning, favourites, and recent completed sandbox payments. Example: M-Pesa `100001`. The directory is fictional; operator merchant lookup is not connected.
+- Supported demo QR payload: `{"network":"mpesa","merchantNumber":"100001"}` or `swallet://merchant?network=mpesa&number=100001`. External QR URLs are never opened automatically.
+- Main Wallet payments debit available sandbox funds. External mobile/bank tuition or merchant payments do not debit the Main Wallet balance.
+
+## Profile and admission storage
+- Enrollment course and academic year use `gss_submit_enrollment_details`, which reuses existing student/institution authorization checks.
+- Profile photos use the private `student-avatars` bucket, with owner-folder access policies, JPG/PNG/WebP types and a 2 MB limit. PINs and OTPs are never stored in profile data.
+- Local mock institutions and their enrollment requests exist only in development and clear on reload. They are not institution-approved records.
+- Course catalogs and university fee balances are not connected. The UI marks unavailable values and disables Pay full until a balance source exists.

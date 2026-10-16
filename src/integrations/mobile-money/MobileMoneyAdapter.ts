@@ -3,7 +3,7 @@
 // Operator API keys must never reach the browser.
 
 export type MobileMoneyProvider = "mpesa" | "airtel" | "mixx";
-export type PaymentPurpose = "wallet_topup" | "tuition" | "fees";
+export type PaymentPurpose = "wallet_topup" | "tuition" | "fees" | "merchant";
 export type PaymentStatus = "pending" | "completed" | "failed";
 
 export interface ProviderInfo {
@@ -22,7 +22,12 @@ export const PROVIDERS: readonly ProviderInfo[] = [
 ];
 
 export interface PaymentRequest {
-  provider: MobileMoneyProvider;
+  provider: MobileMoneyProvider | "bank" | "wallet";
+  bankName?: string;
+  accountNumber?: string;
+  bankOtpToken?: string;
+  merchantName?: string;
+  merchantCode?: string;
   /** Normalised international format, 255XXXXXXXXX. */
   msisdn: string;
   /** Whole Tanzanian shillings. */
@@ -32,9 +37,12 @@ export interface PaymentRequest {
 }
 
 export interface PaymentResult {
+  merchantName?: string;
+  merchantCode?: string;
   reference: string;
   status: PaymentStatus;
-  provider: MobileMoneyProvider;
+  provider: MobileMoneyProvider | "bank" | "wallet";
+  bankName?: string;
   amountTzs: number;
   purpose: PaymentPurpose;
   maskedMsisdn: string;

@@ -4,6 +4,7 @@ const PURPOSE_LABEL: Record<PaymentPurpose, string> = {
   wallet_topup: "Wallet top-up",
   tuition: "Tuition payment",
   fees: "Fees payment",
+  merchant: "Merchant payment",
 };
 
 const STATUS_STYLE: Record<PaymentResult["status"], string> = {
@@ -24,9 +25,9 @@ export default function ActivityList({ items }: { items: PaymentResult[] }) {
           <li key={item.reference} className="flex items-center gap-3 p-4">
             <span aria-hidden="true" className="h-10 w-10 shrink-0 rounded-xl" style={{ background: provider?.accent }} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{PURPOSE_LABEL[item.purpose]}</p>
+              <p className="text-sm font-bold">{item.purpose === "merchant" ? item.merchantName || "Merchant payment" : PURPOSE_LABEL[item.purpose]}</p>
               <p className="truncate text-xs text-slate-500">
-                {provider?.name} · {item.maskedMsisdn} · {new Date(item.createdAt).toLocaleString()}
+                {item.provider === "wallet" ? "Main Wallet" : item.provider === "bank" ? item.bankName || "Bank" : provider?.name} · {item.maskedMsisdn} · {new Date(item.createdAt).toLocaleString()}
               </p>
               <p className="truncate font-mono text-[11px] text-slate-400">{item.reference}</p>
             </div>
