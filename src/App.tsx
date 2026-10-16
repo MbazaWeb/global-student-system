@@ -33,7 +33,14 @@ function Splash(){
  const [done,setDone]=useState(false);
  useEffect(()=>{const timer=window.setTimeout(()=>setDone(true),1800);return()=>window.clearTimeout(timer)},[]);
  if(done)return <Navigate to="/login" replace/>;
- return <main aria-label="Global Student System is starting" className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-b from-[#1761c5] to-[#0e3278] px-6 text-white"><img src="/s-wallet.svg" alt="S Wallet logo" className="h-32 w-32 rounded-[2rem] bg-white object-contain p-3 shadow-2xl"/><h1 className="mt-7 text-center text-2xl font-extrabold">Global Student System</h1><p className="mt-2 text-center text-sm text-blue-100">Your identity. Your education.</p><div className="mt-12 h-1 w-24 overflow-hidden rounded-full bg-white/20"><div className="h-full w-1/2 animate-pulse rounded-full bg-white"/></div><p className="absolute bottom-10 text-xs text-blue-200">Connecting students worldwide</p></main>
+ return <main aria-label="S Wallet is starting" className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#101936] px-6 text-white">
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{background:"radial-gradient(ellipse 85% 48% at 52% 53%, #04b5c3 0%, #087aab 39%, #153a80 70%, #11162f 100%)"}}/>
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40" style={{background:"linear-gradient(165deg, #141321 0%, transparent 36%, transparent 68%, #069b9f 100%)"}}/>
+  <div className="relative z-10 flex items-center justify-center gap-4 sm:gap-6">
+   <img src="/s-wallet.svg" alt="S Wallet symbol" className="h-20 w-20 rounded-2xl bg-white object-contain p-1.5 shadow-xl sm:h-24 sm:w-24"/>
+   <span className="text-4xl font-extrabold tracking-tight sm:text-5xl">S Wallet</span>
+  </div>
+ </main>;
 }
 function Home(){
  const {user,signOut}=useAuth();
