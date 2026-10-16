@@ -32,7 +32,7 @@ insert into public.gss_transactions(reference,student_id,institution_id,amount_m
  ('TX-1','11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999',50000,'TZS','tuition','completed','Term 1 tuition'),
  ('TX-2','11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999',10000,'TZS','fees','pending','Lab fee');
 SQL
-echo "seed ok"echo "seed ok"
+echo "seed ok"
 
 as_user() { # as_user <uid> <sql>
   $P -v ON_ERROR_STOP=0 <<SQL 2>&1 | grep -v "set_config\|^---\|^ *[0-9a-f-]\{36\} *$\|^(1 row)\|^$\|^-*+*-*$" 
