@@ -1,12 +1,13 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Wallet, Store, CreditCard, UserRound, GraduationCap, LogOut } from "lucide-react";
+import { Wallet, Store, CreditCard, UserRound, Users, GraduationCap, LogOut } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 type NavItem={label:string;to:string};
 const groups:{role:string;items:NavItem[]}[]=[
- {role:"student",items:[{label:"Wallet",to:"/student/wallet"},{label:"Merchant",to:"/student/merchant"},{label:"Pay",to:"/student/wallet?pay=tuition"},{label:"Profile",to:"/student/profile"}]},
- {role:"institution_admin",items:[{label:"Dashboard",to:"/institution/dashboard"},{label:"Student Directory",to:"/institution/students"},{label:"Verification Queue",to:"/institution/verification"},{label:"Transactions",to:"/institution/transactions"}]},
- {role:"platform_admin",items:[{label:"Dashboard",to:"/admin/dashboard"},{label:"Institution Approvals",to:"/admin/institutions/approvals"},{label:"Admin Assignments",to:"/admin/institutions/admins"}]},
+ {role:"student",items:[{label:"Wallet",to:"/student/wallet"},{label:"Merchant",to:"/student/merchant"},{label:"Pay",to:"/student/wallet?pay=tuition"},{label:"Profile",to:"/student/profile"},{label:"Family",to:"/student/guardians"}]},
+ {role:"institution_admin",items:[{label:"Dashboard",to:"/institution/dashboard"},{label:"Student Directory",to:"/institution/students"},{label:"Verification Queue",to:"/institution/verification"},{label:"Transactions",to:"/institution/transactions"},{label:"Finance",to:"/institution/finance"}]},
+ {role:"platform_admin",items:[{label:"Dashboard",to:"/admin/dashboard"},{label:"Institution Approvals",to:"/admin/institutions/approvals"},{label:"Admin Assignments",to:"/admin/institutions/admins"},{label:"Roles",to:"/admin/roles"}]},
+ {role:"parent_guardian",items:[{label:"Children",to:"/guardian/dashboard"}]},
  {role:"bank_admin",items:[{label:"Dashboard",to:"/bank/dashboard"}]},
  {role:"bank_officer",items:[{label:"Dashboard",to:"/bank/dashboard"}]}
 ];
@@ -20,7 +21,7 @@ export default function PortalNavigation(){
  const group=available.find(g=>g.items.some(item=>location.pathname.startsWith(item.to.split("?")[0].split("/").slice(0,2).join("/")+"/")))??available.find(g=>g.role==="platform_admin")??available.find(g=>g.role==="institution_admin")??available[0];
  if(!group)return null;
  if(group.role==="student"){
-  const icons=[Wallet,Store,CreditCard,UserRound];
+  const icons=[Wallet,Store,CreditCard,UserRound,Users];
   return <nav aria-label="Portal navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur" style={{paddingBottom:"env(safe-area-inset-bottom)"}}><div className="mx-auto flex max-w-2xl overflow-x-auto px-2 py-2">{group.items.map((item,index)=>{const Icon=icons[index];return <NavLink key={item.to} to={item.to} className={({isActive})=>`flex min-h-14 min-w-[72px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-blue-700 ${(item.label==="Pay"?paying:isActive&&!paying)?"bg-blue-50 text-blue-700":"text-slate-500 hover:bg-slate-50 hover:text-blue-700"}`}><Icon size={20} aria-hidden="true"/>{item.label}</NavLink>;})}</div></nav>;
  }
  const portalName=group.role==="platform_admin"?"Admin Portal":group.role==="institution_admin"?"Institution Portal":"Bank Portal";
