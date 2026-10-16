@@ -52,6 +52,14 @@ export default function InstitutionProfile() {
               <dd className="text-right font-mono text-sm">{inst.country_code}</dd>
             </div>
             <div className="flex items-center justify-between gap-3 py-3">
+              <dt className="text-sm text-slate-500">Institution code</dt>
+              <dd className="text-right font-mono text-sm">{inst.institution_code ?? "—"}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-3">
+              <dt className="text-sm text-slate-500">Region / Province</dt>
+              <dd className="text-right text-sm">{inst.region ?? "—"}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-3">
               <dt className="text-sm text-slate-500">Verification status</dt>
               <dd className="text-right"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold capitalize">{inst.verification_status.replaceAll("_", " ")}</span></dd>
             </div>

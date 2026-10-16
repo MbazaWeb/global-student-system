@@ -28,6 +28,8 @@ export type InstitutionSelf = {
   country_code: string;
   verification_status: string;
   created_at: string;
+  institution_code: string | null;
+  region: string | null;
 };
 
 export type CatalogueAuditRow = {
