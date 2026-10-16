@@ -1,2 +1,10 @@
-/** Payments scaffold. Wire approved services and authorization before production use. */
-export default function Payments(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Payments</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import { Navigate } from "react-router-dom";
+
+/**
+ * Payments is a thin redirect to the wallet, which is the actual payments hub
+ * for students (top-up, tuition, merchant). The Transactions page covers the
+ * ledger view. Keeping the route alive so existing links don't 404.
+ */
+export default function Payments() {
+  return <Navigate to="/student/wallet" replace />;
+}
