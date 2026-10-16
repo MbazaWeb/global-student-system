@@ -22,7 +22,18 @@ Migration: `supabase/migrations/20261016200000_guardian_finance_admin_portals.sq
 | `gss_admin_grant_guardian_role(email)` | platform admin | Provision guardian access |
 
 ## Tests
-`supabase/tests/guardian_access_test.sh` applies every migration to a local PostgreSQL database with a minimal Supabase auth stub, then checks 23 positive and negative access cases. Run it with a local PostgreSQL that has a superuser `tester` (password `x`) and database `gss`.
+`supabase/tests/guardian_access_test.sh` applies every migration to a local PostgreSQL database with a minimal Supabase auth stub, then runs 23 self-checking assertions (positive and negative access cases). A sibling script `supabase/tests/extended_access_test.sh` runs 55 self-checking assertions for the support console, catalogues, audit log, notifications and platform-admin functions.
+
+Both scripts read connection parameters from environment variables with defaults and can be run from any working directory:
+
+```
+PGPASSWORD=x bash supabase/tests/guardian_access_test.sh
+PGPASSWORD=x bash supabase/tests/extended_access_test.sh
+```
+
+Env vars: `PGHOST` (default `localhost`), `PGPORT` (default `5432`), `PGUSER` (default `tester`), `PGDATABASE` (default `gss`), `PGPASSWORD` (required). The caller must also have `psql`, `dropdb` and `createdb` on `PATH`.
+
+Each script prints `PASS:`/`FAIL:` per assertion and a summary. Exit code is non-zero if any assertion fails.
 
 ## Open decisions
 1. **Auto-student on signup.** The existing trigger `gss_create_student_on_signup` gives every new account a student profile and the `student` role, including accounts meant to be guardians or admins. Consider passing a signup flag so only student signups get the role.

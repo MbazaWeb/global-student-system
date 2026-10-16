@@ -8,10 +8,25 @@ Auditor: automated pass
 
 - `rm -rf node_modules && npm ci && npm run build` — **PASS** (after lockfile repair; see finding E-1)
 - `npx eslint src` — **PASS** (0 errors, 0 warnings)
-- `npx tsc -b --noEmit` — **PASS** (0 errors)
-- All 15 migrations apply with `ON_ERROR_STOP=1` to a local PostgreSQL 17 — **PASS**
-- `supabase/tests/guardian_access_test.sh` (23 cases) — **PASS** (all cases match expected outcomes)
+- `npx tsc --noEmit -p tsconfig.app.json` — **PASS** (0 errors)
+- All 17 migrations apply with `ON_ERROR_STOP=1` to a local PostgreSQL 17 — **PASS**
+- `supabase/tests/guardian_access_test.sh` (23 self-checking assertions) — **PASS**
+- `supabase/tests/extended_access_test.sh` (55 self-checking assertions) — **PASS**
+- `scripts/test_mock_adapter_mode.mjs` (6 source-inspection checks) — **PASS**
 - Browser run: **not performed**. Findings below are from static source review + SQL harness. Layout claims (360px width, touch-target sizes) are inferred from the CSS classes used, not measured in a live viewport.
+
+### How to run the SQL test suites
+
+Both SQL scripts read connection parameters from environment variables with defaults and can be run from any working directory:
+
+```
+PGPASSWORD=x PGPORT=5432 bash supabase/tests/guardian_access_test.sh
+PGPASSWORD=x PGPORT=5432 bash supabase/tests/extended_access_test.sh
+```
+
+Env vars: `PGHOST` (default `localhost`), `PGPORT` (default `5432`), `PGUSER` (default `tester`), `PGDATABASE` (default `gss`), `PGPASSWORD` (required — no default).
+
+Each script prints `PASS:`/`FAIL:` per assertion and a summary with `Total`, `Passed`, `Failed`. Exit code is non-zero if any assertion fails.
 
 Findings are grouped by area, with severity (critical / high / medium / low) and status (fixed / deferred / needs decision).
 
