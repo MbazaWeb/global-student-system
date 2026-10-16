@@ -1,1 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 48 48"><image width="48" height="48" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAYFBMVEX///////7+//7//v/+/v/+/v79/v7+/v3+6KX7/P3p+vvd7OvSzLGUzOY1yuIB2v4BuuV+lLMmfssClOcCZ9gAl+MAf/QAZt0BUMUAQ7gIQJwAPpoEK3kALIoBH2gBFVZb/cMIAAADpUlEQVR42nVW7aKjKgzE9hYPIFTQquDX+7/lToJUPXt3frRWZ0JIhljxOiFlVVVKa20KtFZ0S15I4qS/qkpb69z7Aues1VUFRf1bgFDGvv8PDhL51woS0d//gjOVlHeBrIxr/8Vv29ZWd4GqTEv4RWs/H77ddt1XQYIa8buuPUDUzxTTHGOcpmkcxwGwlbquoN3QdYfm08/LsqzrfOOra0qysgMLIOnism1Ev/Gdel0E6mGGjC7Tl6+g8OVZVxLQAox+2Yn+5fclfn3tAzrQZX7c940AwXpZwD3F8y6wAweaQd+X5AtshpHGKJEV8AeupBso0rxjAW+e4gb4xbnWa1nsJJDRu8PaxN+9ELU6AKUCOxBaI9QpsO/POE4IDz6IdV0zWxsfQmJ+SDZvm1Oq3LsdJ9Rn38xL0QLIRDfeo1wJwGcIVjzKpisF16FAtGEtcuzGh+VACt43zc/Pj3rUh0CTH7hCm5HqqRqfcI3fmfxTgFSzgHz67qkDvAdPm+fqNieZoOQhsGy5xD2zwiCzv7hZIIog227aKAuP/H8zm6bhDqpjD6Y7kGC8LVl1EonmnDue5zNEgoG9hI9+mmIM1qja2IBb4/C1MeAe5HHxKNYrQNcDHITg6Nj1AR+KWpzmPgXjNIUA89Esyw5EYoODUWvqtPlNH3vOLc4JPb4Y14ivva9s8HE2SRDneV4J1PJcdUUCPhAnKDzHp7GB4TGTgNpKZkZKcKAUxt3omT/Px3f/6XvO0qtnHjPwp3H9OPWZfvDWhRTz3HYl394IKWiOsaVR+kyfcnjKhC4/HarMlYsxC/JrQfEB84HpJXP69RlMrcLYn4Inzq0hyX/iEKWV+cvm+xi7oIz2OVEjalrBYpriHcCnuaaTbxKPJwhCjH1vlUlc5UQCdBp8+Mk+qjIARLPTREPhQ5ynMXmazLQvEkjpaJyjEs7QPooAh2hbIIjrNOWWzCsLMGVIwIWDUUVOiY8dvE4lWI5WL94q8RJP7bquVLrP3lm4rxhrlra65l/73tBwojFz8Adqc6SGIRznZAI3BSuwNRqVBaYt1utz09g7ZB07Xm8shk71xa1ZMB/PiRBuAk8ZvQRmoHL3BfLzjRz5vYMVTRagcU9tv4JU9rAYMn3Zw0ILyPMd97KZD0HKCXjwh3NTuCHVVwD7CW1DdjUX3TeG0iwLrEuyor6+dmFYSHye7d4azeMoHMCZlnDE8X4o/zVoyEv889E87W+Ai1+qvOP+ANahkHVrBWgsAAAAAElFTkSuQmCC"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" fill="none">
+  <defs>
+    <linearGradient id="gssGrad" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1761c5"/>
+      <stop offset="1" stop-color="#0f347d"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="40" fill="url(#gssGrad)"/>
+  <g fill="#ffffff">
+    <path d="M96 52 L160 80 L96 108 L32 80 Z"/>
+    <path d="M56 92 L56 120 C56 132 74 140 96 140 C118 140 136 132 136 120 L136 92 L96 110 Z"/>
+    <rect x="150" y="80" width="8" height="34" rx="4"/>
+    <circle cx="154" cy="118" r="5"/>
+  </g>
+</svg>
