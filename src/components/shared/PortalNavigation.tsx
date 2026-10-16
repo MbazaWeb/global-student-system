@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 type NavItem={label:string;to:string};
 const groups:{role:string;items:NavItem[]}[]=[
- {role:"student",items:[{label:"Dashboard",to:"/student/dashboard"},{label:"Profile",to:"/student/profile"},{label:"Global ID",to:"/student/identity"},{label:"Admissions",to:"/student/admission"}]},
+ {role:"student",items:[{label:"Dashboard",to:"/student/dashboard"},{label:"Profile",to:"/student/profile"},{label:"Global ID",to:"/student/identity"},{label:"Admissions",to:"/student/admission"},{label:"History",to:"/student/history"}]},
  {role:"institution_admin",items:[{label:"Dashboard",to:"/institution/dashboard"},{label:"Student Directory",to:"/institution/students"},{label:"Verification Queue",to:"/institution/verification"}]},
  {role:"platform_admin",items:[{label:"Dashboard",to:"/admin/dashboard"},{label:"Institution Approvals",to:"/admin/institutions/approvals"},{label:"Admin Assignments",to:"/admin/institutions/admins"}]},
  {role:"bank_admin",items:[{label:"Dashboard",to:"/bank/dashboard"}]},

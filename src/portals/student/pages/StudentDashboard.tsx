@@ -1,2 +1,15 @@
-/** StudentDashboard scaffold. Wire approved services and authorization before production use. */
-export default function StudentDashboard(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Student Dashboard</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../auth/AuthProvider";
+type Enrollment={id:string;institution_id:string;admission_number:string;verification_status:string;created_at:string};
+export default function StudentDashboard(){
+ const {user}=useAuth();const [name,setName]=useState("Student");const [globalId,setGlobalId]=useState("");
+ const [enrollments,setEnrollments]=useState<Enrollment[]>([]);const [error,setError]=useState("");const [loading,setLoading]=useState(true);
+ useEffect(()=>{let active=true;async function load(){if(!supabase||!user){if(active){setError("Supabase not configured.");setLoading(false);}return;}
+ const [p,g,e]=await Promise.all([supabase.from("student_profiles").select("display_name").eq("id",user.id).maybeSingle(),supabase.from("student_global_ids").select("global_student_id").eq("student_id",user.id).maybeSingle(),supabase.from("student_enrollments").select("id,institution_id,admission_number,verification_status,created_at").eq("student_id",user.id).order("created_at",{ascending:false}).limit(100)]);
+ if(active){setName(p.data?.display_name??"Student");setGlobalId(g.data?.global_student_id??"");setEnrollments((e.data??[]) as Enrollment[]);setError(p.error?.message??g.error?.message??e.error?.message??"");setLoading(false);}}
+ void load();return()=>{active=false;};},[user]);
+ const verified=enrollments.filter(e=>e.verification_status==="verified").length;
+ return <main className="mx-auto max-w-5xl p-6"><h1 className="text-3xl font-bold">Welcome, {name}</h1><p className="mt-2 text-slate-600">Your Global Student System overview</p>{error&&<p role="alert" className="mt-4 text-red-700">{error}</p>}{loading?<p className="mt-6">Loading dashboard…</p>:<><div className="grid sm:grid-cols-3 gap-4 mt-6">{[["Global Student ID",globalId||"Pending"],["Enrollments",String(enrollments.length)],["Verified",String(verified)]].map(([label,value])=><section key={label} className="rounded-xl border p-5 bg-white"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-bold break-words">{value}</p></section>)}</div><h2 className="text-xl font-semibold mt-8">Recent enrollments</h2>{enrollments.length===0?<p className="mt-3">No enrollments submitted.</p>:<div className="mt-3 grid gap-3">{enrollments.slice(0,5).map(e=><section key={e.id} className="border rounded-xl p-4"><p className="font-semibold">Admission: {e.admission_number}</p><p className="text-sm">Status: {e.verification_status}</p><p className="text-xs text-slate-500">{new Date(e.created_at).toLocaleDateString()}</p></section>)}</div>}</>}<div className="flex flex-wrap gap-4 mt-8"><Link className="underline text-blue-800" to="/student/identity">View digital ID</Link><Link className="underline text-blue-800" to="/student/admission">Submit enrollment</Link><Link className="underline text-blue-800" to="/student/profile">Edit profile</Link><Link className="underline text-blue-800" to="/student/history">Verification history</Link></div></main>;
+}
