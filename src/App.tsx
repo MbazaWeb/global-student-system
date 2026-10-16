@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import PortalShell from "./components/shared/PortalShell";
 import PortalNavigation from "./components/shared/PortalNavigation";
@@ -31,7 +31,7 @@ const portals:{key:string;name:string;description:string;roles:PortalRole[];link
 {key:"bank",name:"Bank Vendor",description:"Proposed CRDB partner — mock only",roles:["bank_admin","bank_officer"],links:["Account Applications","KYC Review","Linked Accounts","Transactions","Reconciliation","Audit Logs"]},
 {key:"admin",name:"Super Admin",description:"Platform governance",roles:["platform_admin"],links:["Institution Approvals","Admin Assignments","Student Management","Bank Partner","Role Assignments","Security","Audit Logs"]}
 ];
-function AuthenticatedLayout(){const {roles}=useAuth();return <><PortalNavigation/><div className={roles.includes("student")?"pb-[calc(6rem+env(safe-area-inset-bottom))]":undefined}><Outlet/></div></>}
+function AuthenticatedLayout(){const {pathname}=useLocation();const student=pathname.startsWith("/student/");return <div className="min-h-[100dvh]"><PortalNavigation/><div className={student?"min-w-0 pb-[calc(6rem+env(safe-area-inset-bottom))]":"web-portal-content"}><Outlet/></div></div>}
 function Splash(){
  const [done,setDone]=useState(false);
  useEffect(()=>{const timer=window.setTimeout(()=>setDone(true),1800);return()=>window.clearTimeout(timer)},[]);

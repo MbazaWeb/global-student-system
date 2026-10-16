@@ -54,7 +54,7 @@ export default function StudentWallet() {
   }, [setSearchParams]);
 
   return (
-    <main className="mx-auto max-w-md space-y-6 px-5 pb-12 pt-6">
+    <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
       <header>
         <span className="mt-2 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Sandbox preview</span>
       </header>
@@ -78,7 +78,7 @@ export default function StudentWallet() {
         {!detailsLoading&&!studentDetails&&!detailsError&&<Link to="/student/admission" className="block px-5 pb-4 text-sm font-semibold text-blue-700">Add admission details →</Link>}
       </section>
 
-      <section aria-labelledby="bank-account-heading" className="rounded-3xl bg-gradient-to-br from-slate-900 to-blue-950 p-5 text-white shadow-sm">
+      <section aria-labelledby="bank-account-heading" className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-5 text-white shadow-sm">
         <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Landmark size={22} aria-hidden="true"/><h2 id="bank-account-heading" className="font-extrabold">Integrated bank</h2></div><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold">Not connected</span></div>
         <dl className="mt-6 space-y-4"><div><dt className="text-xs text-blue-200">Bank name</dt><dd className="mt-1 font-semibold">No bank linked</dd></div><div><dt className="text-xs text-blue-200">Account name</dt><dd className="mt-1 text-sm">Not available</dd></div><div><dt className="text-xs text-blue-200">Account number</dt><dd className="mt-1 font-mono text-lg tracking-widest">•••• •••• ••••</dd></div></dl>
         <p className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-blue-200"><ShieldCheck size={16} aria-hidden="true"/>Bank details appear after account linking and verification.</p>

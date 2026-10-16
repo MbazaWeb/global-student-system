@@ -133,7 +133,7 @@ export default function StudentProfile() {
 
   const fieldClass = "mt-2 block w-full rounded-xl border border-slate-200 bg-white p-3 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 read-only:border-transparent read-only:bg-slate-50 read-only:text-slate-600";
 
-  return <main className="mx-auto max-w-2xl p-6">
+  return <main className="mx-auto max-w-2xl px-5 py-6">
     <header className="flex items-center gap-3">
       <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-700"><UserRound aria-hidden="true" /></span>
       <div className="flex-1"><h1 className="text-2xl font-extrabold">My profile</h1><p className="mt-1 text-sm text-slate-500">{editing ? "Update your contact details." : "Tap the pen to edit your details."}</p></div>
@@ -141,7 +141,7 @@ export default function StudentProfile() {
     </header>
 
     <section aria-label="Student summary" className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-4 bg-gradient-to-br from-blue-800 to-blue-950 p-5 text-white">
+      <div className="flex items-center gap-4 bg-gradient-to-br from-[#1761c5] to-[#123b86] p-5 text-white">
         {photoUrl&&!photoFailed?<img src={photoUrl} alt="Student profile picture" referrerPolicy="no-referrer" onError={()=>setPhotoFailed(true)} className="h-20 w-20 shrink-0 rounded-2xl border-2 border-white/30 object-cover"/>:<div role="img" aria-label="Profile picture not added" className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl border-2 border-white/20 bg-white/10 text-2xl font-bold">{saved.name.trim()?saved.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join("").toUpperCase():<UserRound size={32} aria-hidden="true"/>}</div>}
         <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-blue-200">Student name</p><h2 className="mt-1 break-words text-xl font-extrabold">{loading?"Loading…":saved.name||"Name not provided"}</h2><span className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs capitalize">{enrollmentLoading?"Loading enrollment…":enrollment?.status.replaceAll("_"," ")??"No enrollment"}</span>{(!photoUrl||photoFailed)&&<p className="mt-2 text-xs text-blue-200">Profile picture not added</p>}</div>
       </div>

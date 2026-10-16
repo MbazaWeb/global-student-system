@@ -93,7 +93,7 @@ export default function AdmissionVerification() {
       <div><h1 className="text-2xl font-extrabold tracking-tight">Admissions</h1><p className="mt-1 text-sm text-slate-500">Connect your student enrollment.</p></div>
     </header>
 
-    <section className="rounded-3xl bg-gradient-to-br from-blue-700 to-blue-950 p-5 text-white" aria-label="Admission overview">
+    <section className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-5 text-white" aria-label="Admission overview">
       <p className="text-sm font-semibold text-blue-100">Your education journey</p>
       <p className="mt-2 text-xl font-bold">One identity. Your institution.</p>
       <p className="mt-2 text-sm leading-6 text-blue-100">Add your admission number so your institution can confirm your enrollment.</p>

@@ -22,12 +22,12 @@ export default function TransactionHistory({scope}:{scope:"student"|"institution
  const badge=(value:string)=>value==="completed"?"bg-emerald-50 text-emerald-700":value==="pending"?"bg-amber-50 text-amber-800":value==="failed"?"bg-red-50 text-red-700":"bg-slate-100 text-slate-600";
  const actionStyle="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40";
  const inputStyle="mt-2 block min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100";
- return <main className="mx-auto max-w-4xl space-y-6 px-5 py-6">
+ return <main className={`mx-auto ${scope==="student"?"max-w-2xl":"max-w-4xl"} space-y-6 px-5 py-6`}>
   <style>{`@media print{body{background:white!important;color:black!important}nav,button,input,select,label,.print-hide{display:none!important}main{max-width:none!important;padding:0!important}.print-only{display:block!important}table{font-size:10px!important}thead{display:table-header-group}tr{break-inside:avoid}}`}</style>
   <div className="hidden print-only"><h1>GLOBAL STUDENT SYSTEM</h1><p>Transaction Statement · {new Date().toLocaleString()}</p><p>Period: {from||"All loaded dates"} — {to||"All loaded dates"}</p><p>Unofficial record. Not a bank-issued statement or proof of settlement.</p></div>
   <header className="flex items-center gap-3 print-hide"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-700"><ReceiptText size={24} aria-hidden="true"/></span><div><h1 className="text-2xl font-extrabold tracking-tight">{scope==="student"?"Transaction statement":"Institution transactions"}</h1><p className="mt-1 text-sm text-slate-500">Your payment records, in one place.</p></div></header>
 
-  <section aria-label="Statement summary" className="rounded-3xl bg-gradient-to-br from-blue-700 to-blue-950 p-5 text-white print-hide">
+  <section aria-label="Statement summary" className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-5 text-white print-hide">
     <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">Completed transaction total</p>
     <div className="mt-3 space-y-1">{loading?<p className="text-2xl font-bold">Loading…</p>:Object.entries(totals).length?Object.entries(totals).map(([currency,minor])=><p key={currency} className="break-words text-2xl font-extrabold">{currency} {(minor/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>):<p className="text-xl font-bold">No completed transactions</p>}</div>
     <p className="mt-2 text-xs leading-5 text-blue-100">For the selected filters. This is a transaction total, not your wallet balance.</p>

@@ -36,7 +36,7 @@ export default function BankAccountLinking(){
  }
  return <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
   <header className="flex items-center gap-3"><span className="rounded-2xl bg-blue-50 p-3 text-blue-700"><Landmark aria-hidden="true"/></span><div><h1 className="text-2xl font-extrabold">Bank Integration</h1><p className="mt-1 text-sm text-slate-500">Your bank connection and account details.</p></div></header>
-  <section className="rounded-3xl bg-gradient-to-br from-slate-900 to-blue-950 p-6 text-white" aria-label="Bank account">
+  <section className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-6 text-white" aria-label="Bank account">
    <div className="flex items-center justify-between"><Landmark size={28} aria-hidden="true"/><span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">{bank?"Demo OTP confirmed":"Not connected"}</span></div>
    <dl className="mt-7 space-y-5"><div><dt className="text-xs text-blue-200">Bank name</dt><dd className="mt-1 font-bold">{bank?.bank??"No bank linked"}</dd></div><div><dt className="text-xs text-blue-200">Account name</dt><dd className="mt-1">{bank?.name??"Not available"}</dd></div><div><dt className="text-xs text-blue-200">Account number</dt><dd className="mt-1 font-mono text-xl tracking-widest">{bank?`•••• ${bank.number.slice(-4)}`:"•••• •••• ••••"}</dd></div></dl>
   </section>

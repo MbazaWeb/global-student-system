@@ -71,7 +71,7 @@ export default function PayMerchant(){
  const field="mt-2 block min-h-12 w-full rounded-xl border border-slate-200 bg-white p-3 text-base outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100";
  return <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
   <header className="flex items-center gap-3"><span className="rounded-2xl bg-blue-50 p-3 text-blue-700"><Store aria-hidden="true"/></span><div><h1 className="text-2xl font-extrabold">Pay Merchant</h1><p className="mt-1 text-sm text-slate-500">Enter merchant details or scan a QR.</p></div></header>
-  <section className="rounded-3xl bg-gradient-to-br from-blue-700 to-blue-950 p-5 text-white" aria-label="Available wallet funds"><p className="text-sm text-blue-100">Main Wallet available balance</p><p className="mt-2 text-3xl font-extrabold">{balance===null?"Loading…":`TZS ${balance.toLocaleString("en-US")}`}</p></section>
+  <section className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-5 text-white" aria-label="Available wallet funds"><p className="text-sm text-blue-100">Main Wallet available balance</p><p className="mt-2 text-3xl font-extrabold">{balance===null?"Loading…":`TZS ${balance.toLocaleString("en-US")}`}</p></section>
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
   <section aria-label="Merchant payment" className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
    <label className="block text-sm font-semibold text-slate-700">Network<select value={network} onChange={e=>setNetwork(e.target.value as MerchantNetwork|"")} className={field}><option value="">Select network</option>{merchantNetworks.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
