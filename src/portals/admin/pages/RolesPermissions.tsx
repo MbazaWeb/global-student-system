@@ -45,7 +45,7 @@ export default function RolesPermissions() {
             Account email
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-72 rounded border p-2" />
           </label>
-          <button type="submit" disabled={busy || !email.trim()} className="rounded bg-[#1761c5] px-4 py-2 font-semibold text-white disabled:opacity-40">
+          <button type="submit" disabled={busy || !email.trim()} className="min-h-11 rounded bg-[#1761c5] px-4 py-2 font-semibold text-white disabled:opacity-40">
             {busy ? "Granting…" : "Grant guardian"}
           </button>
         </form>

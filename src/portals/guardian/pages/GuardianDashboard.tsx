@@ -70,7 +70,7 @@ export default function GuardianDashboard() {
               ))}
             </select>
           </label>
-          <button type="submit" disabled={submitting || globalId.trim().length < 5} className="rounded bg-[#1761c5] px-4 py-2 font-semibold text-white disabled:opacity-40">
+          <button type="submit" disabled={submitting || globalId.trim().length < 5} className="min-h-11 rounded bg-[#1761c5] px-4 py-2 font-semibold text-white disabled:opacity-40">
             {submitting ? "Sending…" : "Send request"}
           </button>
         </form>
@@ -95,7 +95,7 @@ export default function GuardianDashboard() {
                     <p className="font-mono text-sm text-slate-600">{child.global_student_id}</p>
                     <p className="text-sm text-slate-500 capitalize">{child.relationship.replace("_", " ")}</p>
                   </div>
-                  <Link to={`/guardian/children/${child.student_id}/payments`} className="rounded border px-3 py-2 text-sm font-semibold">
+                  <Link to={`/guardian/children/${child.student_id}/payments`} className="inline-flex min-h-11 items-center rounded border px-3 py-2 text-sm font-semibold">
                     View payments
                   </Link>
                 </div>

@@ -74,8 +74,8 @@ export default function GuardianRequests() {
                       <p className="text-xs text-slate-500">Requested {new Date(l.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button disabled={busy === l.id} onClick={() => void act(l.id, "accept")} className="rounded bg-[#1761c5] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Approve</button>
-                      <button disabled={busy === l.id} onClick={() => void act(l.id, "decline")} className="rounded border px-3 py-2 text-sm font-semibold disabled:opacity-40">Decline</button>
+                      <button disabled={busy === l.id} onClick={() => void act(l.id, "accept")} className="min-h-11 rounded bg-[#1761c5] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Approve</button>
+                      <button disabled={busy === l.id} onClick={() => void act(l.id, "decline")} className="min-h-11 rounded border px-3 py-2 text-sm font-semibold disabled:opacity-40">Decline</button>
                     </div>
                   </li>
                 ))}
@@ -92,7 +92,7 @@ export default function GuardianRequests() {
                       <p className="font-semibold">{RELATIONSHIP_LABEL[l.relationship] ?? l.relationship}</p>
                       <p className="text-xs text-slate-500">Approved access</p>
                     </div>
-                    <button disabled={busy === l.id} onClick={() => void act(l.id, "revoke")} className="rounded border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-40">Revoke access</button>
+                    <button disabled={busy === l.id} onClick={() => void act(l.id, "revoke")} className="min-h-11 rounded border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-40">Revoke access</button>
                   </li>
                 ))}
               </ul>
