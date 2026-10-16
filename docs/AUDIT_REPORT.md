@@ -174,3 +174,13 @@ The "Total" column for Low counts the grouped rows (S-2, S-3, I-5, I-6, A-5, A-6
 - **Browser behaviour.** No browser was launched. All layout, touch-target, and rendering claims are inferred from the source. Specifically unverified: actual 360 px rendering, camera permission flow on a real device, signed-URL fetch for avatars, Supabase Auth state transitions on a live project.
 - **Production Supabase project state.** The audit used a local PostgreSQL 17 with the `local_auth_stub.sql` stub. The production project at `guqrahxasuebxpdvkslm.supabase.co` was not queried. Schema drift between local migrations and the remote project is therefore not checked.
 - **Edge Function side.** `supabase/functions/.gitkeep` is the only file; no Edge Functions exist. The mobile-money and banking flows are entirely browser-sandbox today, as documented in `docs/MOBILE_MONEY.md`.
+
+## 13. Follow-up fixes (final pass)
+
+| Item | Change | Verified by |
+|---|---|---|
+| Live-mode crash | `MockMobileMoneyAdapter` no longer throws at import. In live mode each payment call rejects with a clear message, so the app still loads. | Build and lint pass. Read-level review of the guard. Not run in a browser. |
+| Shared test database | Each suite has its own default database: `gss_base` for the guardian suite, `gss_ext` for the extended suite. `PGDATABASE` still overrides both. | Both suites run back to back on separate databases. |
+| `gss_institution_self()` untested | Four new cases: own institution returned, exactly one row, other admin cannot see it, student gets zero rows, anonymous role denied. | Extended suite: 60 of 60 pass. |
+
+Test counts after this pass: base suite 23 of 23, extended suite 60 of 60.
