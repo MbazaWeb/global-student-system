@@ -46,6 +46,8 @@ export default function InstitutionApply() {
   const [name, setName] = useState("");
   const [country, setCountry] = useState("TZ");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [institutionCode, setInstitutionCode] = useState("");
   const [region, setRegion] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -62,18 +64,33 @@ export default function InstitutionApply() {
       return;
     }
     try {
-      const { error } = await supabase.from("institution_applications").insert({
-        institution_name: name.trim(),
-        country_code: country.toUpperCase().trim(),
-        contact_email: email.trim().toLowerCase(),
-        institution_code: institutionCode.trim(),
-        region: region.trim(),
+      // Sign up the auth user with institution metadata. The database
+      // trigger gss_institution_on_signup fires on auth.users insert and
+      // creates the institution (pending), the application row, and the
+      // institution_admin role assignment — all in the same transaction.
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            display_name: name.trim(),
+            is_institution: "true",
+            institution_name: name.trim(),
+            institution_country: country.toUpperCase().trim(),
+            institution_code: institutionCode.trim(),
+            institution_region: region.trim(),
+            contact_email: email.trim().toLowerCase(),
+          },
+        },
       });
       if (error) throw error;
       setStatus("success");
-      setMessage("Application received. GSS will review institutional authority before issuing staff invitations.");
+      setMessage(data.session
+        ? "Account created. You can now sign in and update your institution profile while waiting for approval."
+        : "Account created. Check your email for a confirmation link, then sign in to update your institution profile while waiting for approval.");
       setName("");
       setEmail("");
+      setPassword("");
       setCountry("TZ");
       setInstitutionCode("");
       setRegion("");
@@ -182,6 +199,29 @@ export default function InstitutionApply() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={status === "submitting" || status === "success"}
             />
+          </label>
+
+          <label className={labelClass}>Password
+            <div className="relative mt-2">
+              <input
+                required
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={8}
+                placeholder="At least 8 characters"
+                className={`${fieldClass} pr-16`}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={status === "submitting" || status === "success"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute inset-y-0 right-3 text-sm font-semibold text-blue-700"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </label>
 
           {status === "error" && (

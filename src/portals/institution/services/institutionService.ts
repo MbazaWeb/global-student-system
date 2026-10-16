@@ -59,6 +59,15 @@ export const institutionService = {
     return (data ?? null) as InstitutionSelf | null;
   },
 
+  async updateProfile(name: string, institutionCode: string, region: string): Promise<void> {
+    const { error } = await db().rpc("gss_institution_update_profile", {
+      p_name: name,
+      p_institution_code: institutionCode,
+      p_region: region,
+    });
+    fail(error);
+  },
+
   async listCatalogues(): Promise<CatalogueRow[]> {
     const { data, error } = await db().rpc("gss_institution_list_catalogues");
     fail(error);
