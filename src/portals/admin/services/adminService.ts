@@ -21,6 +21,8 @@ export type InstitutionRow = {
   country_code: string;
   verification_status: string;
   created_at: string;
+  institution_code: string | null;
+  region: string | null;
 };
 
 export type VerificationMonitoringRow = {
@@ -78,6 +80,20 @@ export const adminService = {
     });
     fail(error);
     return (data ?? []) as InstitutionRow[];
+  },
+
+  async createInstitution(
+    name: string, countryCode: string, institutionCode: string, region: string, note: string
+  ): Promise<string> {
+    const { data, error } = await db().rpc("gss_admin_create_institution", {
+      p_name: name,
+      p_country_code: countryCode,
+      p_institution_code: institutionCode || null,
+      p_region: region || null,
+      p_note: note,
+    });
+    fail(error);
+    return data as string;
   },
 
   async verificationMonitoring(status: string): Promise<VerificationMonitoringRow[]> {
