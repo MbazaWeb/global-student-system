@@ -30,6 +30,8 @@ export default function InstitutionApply() {
   const [name, setName] = useState("");
   const [country, setCountry] = useState("TZ");
   const [email, setEmail] = useState("");
+  const [institutionCode, setInstitutionCode] = useState("");
+  const [region, setRegion] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
 
@@ -48,6 +50,8 @@ export default function InstitutionApply() {
         institution_name: name.trim(),
         country_code: country.toUpperCase().trim(),
         contact_email: email.trim().toLowerCase(),
+        institution_code: institutionCode.trim() || null,
+        region: region.trim() || null,
       });
       if (error) throw error;
       setStatus("success");
@@ -55,6 +59,8 @@ export default function InstitutionApply() {
       setName("");
       setEmail("");
       setCountry("TZ");
+      setInstitutionCode("");
+      setRegion("");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Unable to submit your application. Please try again.");
@@ -95,6 +101,18 @@ export default function InstitutionApply() {
             />
           </label>
 
+          <label className={labelClass}>Institution code <span className="font-normal text-slate-400">(optional)</span>
+            <input
+              maxLength={50}
+              autoComplete="off"
+              placeholder="e.g. UDSM-2026 or ministry-issued code"
+              className={fieldClass}
+              value={institutionCode}
+              onChange={(e) => setInstitutionCode(e.target.value)}
+              disabled={status === "submitting" || status === "success"}
+            />
+          </label>
+
           <label className={labelClass}>Country
             <select
               required
@@ -105,6 +123,18 @@ export default function InstitutionApply() {
             >
               {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name} ({c.code})</option>)}
             </select>
+          </label>
+
+          <label className={labelClass}>Region / Province <span className="font-normal text-slate-400">(optional)</span>
+            <input
+              maxLength={100}
+              autoComplete="address-level1"
+              placeholder="e.g. Dar es Salaam"
+              className={fieldClass}
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              disabled={status === "submitting" || status === "success"}
+            />
           </label>
 
           <label className={labelClass}>Official contact email
