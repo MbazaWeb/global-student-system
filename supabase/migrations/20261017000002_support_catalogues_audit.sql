@@ -633,26 +633,29 @@ begin
    where r.user_id = auth.uid() and r.role = 'institution_admin';
   if v_inst is null then raise exception 'Institution admin required' using errcode = '42501'; end if;
   return query
-    select 'programme'::text, p.id, p.name, p.code, null::text, null::boolean,
-           null::text, null::bigint, null::text, null::text, null::text, p.created_at
-      from public.institution_programmes p where p.institution_id = v_inst
-    union all
-    select 'department'::text, d.id, d.name, null::text, null::text, null::boolean,
-           null::text, null::bigint, null::text, null::text, null::text, d.created_at
-      from public.institution_departments d where d.institution_id = v_inst
-    union all
-    select 'academic_year'::text, ay.id, ay.year, null::text, ay.year, ay.active,
-           null::text, null::bigint, null::text, null::text, null::text, ay.created_at
-      from public.institution_academic_years ay where ay.institution_id = v_inst
-    union all
-    select 'tuition_fee'::text, f.id, f.label, null::text, null::text, null::boolean,
-           f.label, f.amount_minor, f.currency_code,
-           p.name, ay.year, f.created_at
-      from public.institution_tuition_fees f
-      left join public.institution_programmes p on p.id = f.programme_id
-      left join public.institution_academic_years ay on ay.id = f.academic_year_id
-     where f.institution_id = v_inst
-    order by kind, created_at;
+    select * from (
+      select 'programme'::text as kind, p.id, p.name, p.code, null::text as year, null::boolean as active,
+             null::text as label, null::bigint as amount_minor, null::text as currency_code,
+             null::text as programme_name, null::text as academic_year, p.created_at
+        from public.institution_programmes p where p.institution_id = v_inst
+      union all
+      select 'department'::text, d.id, d.name, null::text, null::text, null::boolean,
+             null::text, null::bigint, null::text, null::text, null::text, d.created_at
+        from public.institution_departments d where d.institution_id = v_inst
+      union all
+      select 'academic_year'::text, ay.id, ay.year, null::text, ay.year, ay.active,
+             null::text, null::bigint, null::text, null::text, null::text, ay.created_at
+        from public.institution_academic_years ay where ay.institution_id = v_inst
+      union all
+      select 'tuition_fee'::text, f.id, f.label, null::text, null::text, null::boolean,
+             f.label, f.amount_minor, f.currency_code,
+             p.name, ay.year, f.created_at
+        from public.institution_tuition_fees f
+        left join public.institution_programmes p on p.id = f.programme_id
+        left join public.institution_academic_years ay on ay.id = f.academic_year_id
+       where f.institution_id = v_inst
+    ) as u
+    order by u.kind, u.created_at;
 end $$;
 revoke all on function public.gss_institution_list_catalogues() from public, anon;
 grant execute on function public.gss_institution_list_catalogues() to authenticated;
