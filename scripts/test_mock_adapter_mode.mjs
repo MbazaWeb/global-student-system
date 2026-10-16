@@ -4,17 +4,21 @@
  * Run: node scripts/test_mock_adapter_mode.mjs
  *
  * This script verifies by source inspection:
- * 1. When VITE_MOBILE_MONEY_MODE is "live", the adapter throws at module
- *    load before any function is called.
- * 2. The throw happens before PERSIST_TO_LOCAL_STORAGE is set.
- * 3. persist() and setSandboxUser() both guard on PERSIST_TO_LOCAL_STORAGE.
+ * 1. When VITE_MOBILE_MONEY_MODE is "live", the adapter defines an
+ *    assertNotLive() helper that throws PaymentError. The throw is
+ *    per-call (not at module load) so the app still loads in live mode;
+ *    each payment call fails with a clear message instead.
+ * 2. assertNotLive() is called from both requestPayment and
+ *    getPaymentStatus, so no payment can be processed in live mode.
+ * 3. persist() and setSandboxUser() both guard on PERSIST_TO_LOCAL_STORAGE,
+ *    so live mode never writes to localStorage.
  * 4. PERSIST_TO_LOCAL_STORAGE is only true for unset/empty/sandbox.
  * 5. No reference to VITE_MOBILE_MONEY_ENDPOINT (removed).
  *
  * The mock adapter uses import.meta.env which is Vite-specific, so a
  * runtime import in plain Node is not practical. Source inspection is
- * sufficient because the mode check is a top-level if/throw that runs
- * before any other code in the module.
+ * sufficient because the mode check is a top-level constant plus a
+ * helper called at the start of each payment method.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -38,16 +42,27 @@ function assert(label, condition, detail) {
   }
 }
 
-// 1. Live mode throws at module load.
-const hasLiveThrow = /if\s*\(MODE\s*===\s*["']live["']\)\s*\{[^}]*throw/.test(src);
-assert("live mode throws at module load", hasLiveThrow,
-  "Expected: if (MODE === 'live') { throw ... }");
+// 1. Live mode defines an assertNotLive() helper that throws PaymentError.
+//    The throw is per-call (inside the helper), not at module load, so the
+//    app still loads in live mode. Each payment call fails with a clear message.
+const hasAssertNotLive = /function\s+assertNotLive\(\):\s*void\s*\{\s*if\s*\(LIVE_MODE\)\s*\{\s*throw\s+new\s+PaymentError\(/.test(src);
+assert("live mode defines assertNotLive() that throws PaymentError", hasAssertNotLive,
+  "Expected: function assertNotLive(): void { if (LIVE_MODE) { throw new PaymentError(...) } }");
 
-// 2. The throw happens before PERSIST_TO_LOCAL_STORAGE is set.
-const throwPos = src.indexOf('if (MODE === "live")');
-const persistPos = src.indexOf("PERSIST_TO_LOCAL_STORAGE");
-assert("live-mode throw is before persistence flag", throwPos > 0 && throwPos < persistPos,
-  `throw at ${throwPos}, persist at ${persistPos}`);
+// LIVE_MODE flag must be derived from MODE at module load.
+const hasLiveModeFlag = /const\s+LIVE_MODE\s*=\s*MODE\s*===\s*["']live["']/.test(src);
+assert("LIVE_MODE flag derived from MODE", hasLiveModeFlag,
+  "Expected: const LIVE_MODE = MODE === 'live'");
+
+// 2. assertNotLive() is called from both requestPayment and getPaymentStatus,
+//    so no payment can be processed in live mode.
+const assertCalls = (src.match(/assertNotLive\(\)/g) || []).length;
+assert("assertNotLive() called from both payment methods", assertCalls >= 2,
+  `Expected >= 2 calls, found ${assertCalls}`);
+const requestPaymentCalls = /async\s+requestPayment[\s\S]*?assertNotLive\(\)/.test(src);
+const getPaymentStatusCalls = /async\s+getPaymentStatus[\s\S]*?assertNotLive\(\)/.test(src);
+assert("assertNotLive() called inside requestPayment", requestPaymentCalls);
+assert("assertNotLive() called inside getPaymentStatus", getPaymentStatusCalls);
 
 // 3. persist() guards on PERSIST_TO_LOCAL_STORAGE.
 const persistGuard = /function persist\(\):\s*void\s*\{\s*if\s*\(!PERSIST_TO_LOCAL_STORAGE\)\s*return/.test(src);
