@@ -16,7 +16,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  const {data:{subscription}}=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>{void update(session?.user??null);},0);});
  return()=>{active=false;subscription.unsubscribe();};
  },[]);
- async function signOut(){if(supabase)await supabase.auth.signOut();}
+ async function signOut(){if(supabase){const {error}=await supabase.auth.signOut();if(error)throw error;}}
  return <AuthContext.Provider value={{user,roles,loading,signOut}}>{children}</AuthContext.Provider>;
 }
 export function useAuth(){const state=useContext(AuthContext);if(!state)throw new Error("Missing AuthProvider");return state;}

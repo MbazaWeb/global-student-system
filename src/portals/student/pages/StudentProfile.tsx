@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { Pencil, UserRound, X, Check, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Pencil, UserRound, X, Check, ChevronDown, LogOut } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../auth/AuthProvider";
 
@@ -15,7 +15,16 @@ const services = [
 ];
 
 export default function StudentProfile() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate=useNavigate();
+  const [signingOut,setSigningOut]=useState(false);
+  const [logoutError,setLogoutError]=useState("");
+  async function logout(){
+    setSigningOut(true);setLogoutError("");
+    try{await signOut();navigate("/login",{replace:true});}
+    catch{setLogoutError("Unable to sign out. Please try again.");}
+    finally{setSigningOut(false);}
+  }
   const [details, setDetails] = useState<Details>(empty);
   const [saved, setSaved] = useState<Details>(empty);
   const [editing, setEditing] = useState(false);
@@ -179,5 +188,7 @@ export default function StudentProfile() {
     {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {message && <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}
     <nav aria-label="Profile menu" className="mt-8"><h2 className="text-lg font-bold">Student services</h2><div className="mt-3 grid gap-3 sm:grid-cols-2">{services.map(item => <Link key={item.to} to={item.to} className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-700"><span className="block font-semibold text-blue-800">{item.label} →</span><span className="mt-1 block text-sm text-slate-500">{item.description}</span></Link>)}</div></nav>
+    <button type="button" onClick={()=>void logout()} disabled={signingOut||saving} className="mt-8 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-white px-4 py-3 font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700 disabled:opacity-50"><LogOut size={19} aria-hidden="true"/>{signingOut?"Signing out…":"Sign out"}</button>
+    {logoutError&&<p role="alert" className="mt-3 text-sm text-red-700">{logoutError}</p>}
   </main>;
 }
