@@ -10,8 +10,8 @@ const groups:{role:string;items:NavItem[]}[]=[
  {role:"parent_guardian",items:[{label:"Children",to:"/guardian/dashboard"}]},
  {role:"support_agent",items:[{label:"Dashboard",to:"/support/dashboard"},{label:"Cases",to:"/support/cases"},{label:"Transactions",to:"/support/transactions"},{label:"Refunds",to:"/support/refunds"}]},
  {role:"support_lead",items:[{label:"Dashboard",to:"/support/dashboard"},{label:"Cases",to:"/support/cases"},{label:"Transactions",to:"/support/transactions"},{label:"Refunds",to:"/support/refunds"}]},
- {role:"bank_admin",items:[{label:"Dashboard",to:"/bank/dashboard"}]},
- {role:"bank_officer",items:[{label:"Dashboard",to:"/bank/dashboard"}]}
+ {role:"bank_admin",items:[{label:"Dashboard",to:"/bank/dashboard"},{label:"Profile",to:"/bank/profile"},{label:"Applications",to:"/bank/applications"},{label:"KYC",to:"/bank/kyc"},{label:"Accounts",to:"/bank/linked"},{label:"Transactions",to:"/bank/transactions"},{label:"Reconciliation",to:"/bank/reconciliation"},{label:"Audit",to:"/bank/audit"}]},
+ {role:"bank_officer",items:[{label:"Dashboard",to:"/bank/dashboard"},{label:"Profile",to:"/bank/profile"},{label:"Applications",to:"/bank/applications"},{label:"KYC",to:"/bank/kyc"},{label:"Accounts",to:"/bank/linked"},{label:"Transactions",to:"/bank/transactions"},{label:"Reconciliation",to:"/bank/reconciliation"},{label:"Audit",to:"/bank/audit"}]}
 ];
 export default function PortalNavigation(){
  const {roles,user,signOut}=useAuth();

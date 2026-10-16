@@ -1,2 +1,19 @@
-/** AccountVerification scaffold. Wire approved services and authorization before production use. */
-export default function AccountVerification(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Account Verification</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import BankPageShell from "../BankLayout";
+import { MOCK_ACCOUNT_VERIFICATIONS } from "../services/bankService";
+
+export default function AccountVerification() {
+  return (
+    <BankPageShell title="Account verification" subtitle="Mock account verification queue (no real accounts).">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-slate-600"><tr><th className="p-3">Account</th><th className="p-3">Status</th><th className="p-3">Verified</th></tr></thead>
+          <tbody>
+            {MOCK_ACCOUNT_VERIFICATIONS.map((v) => (
+              <tr key={v.id} className="border-t"><td className="p-3 font-mono">{v.account}</td><td className="p-3">{v.status}</td><td className="p-3 text-xs text-slate-500">{v.verifiedAt}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </BankPageShell>
+  );
+}

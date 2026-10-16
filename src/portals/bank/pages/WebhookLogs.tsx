@@ -1,2 +1,19 @@
-/** WebhookLogs scaffold. Wire approved services and authorization before production use. */
-export default function WebhookLogs(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Webhook Logs</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import BankPageShell from "../BankLayout";
+import { MOCK_WEBHOOK_LOGS } from "../services/bankService";
+
+export default function WebhookLogs() {
+  return (
+    <BankPageShell title="Webhook logs" subtitle="Mock webhook receipts (no real webhooks).">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-slate-600"><tr><th className="p-3">Event</th><th className="p-3">Status</th><th className="p-3">Received</th></tr></thead>
+          <tbody>
+            {MOCK_WEBHOOK_LOGS.map((w) => (
+              <tr key={w.id} className="border-t"><td className="p-3 font-mono">{w.event}</td><td className="p-3">{w.status}</td><td className="p-3 text-xs text-slate-500">{w.receivedAt}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </BankPageShell>
+  );
+}
