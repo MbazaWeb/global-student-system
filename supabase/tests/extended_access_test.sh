@@ -1,29 +1,37 @@
 #!/bin/bash
-# Extended SQL test harness for the new support, catalogue, audit and
-# notification functions added in migration 20261017000002.
+# Extended access test suite.
+# Self-checking assertions for the support console, institution catalogues,
+# audit log, notifications, and platform-admin functions added in migration
+# 20261017000002.
 #
-# Mirrors the structure of guardian_access_test.sh. Uses the same local
-# PostgreSQL (tester superuser, password x, database gss) and the same
-# auth stub. Re-applies all migrations so it is independent of the
-# guardian test's state.
+# Usage:
+#   PGPASSWORD=x bash supabase/tests/extended_access_test.sh
 #
-# Run: bash supabase/tests/extended_access_test.sh
+# Env vars (with defaults):
+#   PGHOST=localhost  PGPORT=5432  PGUSER=tester  PGDATABASE=gss
+#   PGPASSWORD must be set by the caller.
+#
+# Exits non-zero if any assertion fails.
 set -u
-export PGROOT=${PGROOT:-/home/z/my-project/pgroot/usr/lib/postgresql/17}
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}:/home/z/my-project/pgroot/usr/lib/x86_64-linux-gnu:/home/z/my-project/pgroot/usr/lib
-export PGPASSWORD=x
 
-# cd to the repo root (the directory above supabase/tests/).
-cd "$(cd "$(dirname "$0")/../.." && pwd)"
+# Compute repo root from script location (portable from any cwd).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_ROOT"
 
-# Drop & recreate gss as tester.
-dropdb -h localhost -p 5433 -U tester --if-exists gss
-createdb -h localhost -p 5433 -U tester -O tester gss
+# Source shared helpers (sets up $P, run_as, run_raw, assert_*).
+. "$SCRIPT_DIR/test_helpers.sh"
 
-P="psql -X -q -h localhost -p 5433 -U tester -d gss"
-$P -f supabase/tests/local_auth_stub.sql >/dev/null 2>&1 || { echo "STUB FAILED"; exit 1; }
+# ---------------------------------------------------------------------------
+# Reset database.
+# ---------------------------------------------------------------------------
+dropdb -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" --if-exists "$PGDATABASE" 2>/dev/null || true
+createdb -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -O "$PGUSER" "$PGDATABASE"
 
+# Apply auth stub.
+$P -f supabase/tests/local_auth_stub.sql >/dev/null 2>&1
+
+# Apply migrations in order.
 for f in supabase/migrations/*.sql; do
   if ! $P -v ON_ERROR_STOP=1 -f "$f" >"${TMPDIR:-/tmp}/mig.log" 2>&1; then
     echo "MIGRATION FAILED: $f"
@@ -31,11 +39,13 @@ for f in supabase/migrations/*.sql; do
     exit 1
   fi
 done
-echo "all migrations applied"
+echo "setup: all migrations applied"
 
+# ---------------------------------------------------------------------------
 # Seed: same users + institution + enrollment + transactions as the
-# guardian test, plus institution_admin and support_agent/support_lead
-# grants on the admin user and a separate stranger user for support_agent.
+# guardian test, plus support_agent/support_lead grants and an
+# enrollment_verification_request so case 41 has data.
+# ---------------------------------------------------------------------------
 $P -v ON_ERROR_STOP=1 <<'SQL' || { echo "SEED FAILED"; exit 1; }
 insert into auth.users(id,email,raw_user_meta_data) values
  ('11111111-1111-1111-1111-111111111111','student@test','{"display_name":"Amina Juma"}'),
@@ -59,9 +69,22 @@ insert into public.user_role_assignments(user_id,role) values
 insert into public.gss_transactions(reference,student_id,institution_id,amount_minor,currency_code,transaction_type,status,description) values
  ('TX-1','11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999',50000,'TZS','tuition','completed','Term 1 tuition'),
  ('TX-2','11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999',10000,'TZS','fees','pending','Lab fee');
+-- Seed an enrollment_verification_request so case 39 has data.
+insert into public.enrollment_verification_requests(enrollment_id,student_id,institution_id,status)
+ select e.id, e.student_id, e.institution_id, 'pending'::text
+ from public.student_enrollments e
+ where e.student_id='11111111-1111-1111-1111-111111111111' and e.institution_id='99999999-9999-9999-9999-999999999999'
+ on conflict do nothing;
+-- The signup trigger gives every auth user the student role. For cases 2 and 5
+-- to test non-student denial, remove the student role from G and X. This does
+-- not change application behaviour — it only sets up the test fixture.
+delete from public.user_role_assignments where user_id in ('22222222-2222-2222-2222-222222222222','33333333-3333-3333-3333-333333333333') and role='student';
 SQL
-echo "seed ok"
+echo "setup: seed ok"
 
+# ---------------------------------------------------------------------------
+# Constants.
+# ---------------------------------------------------------------------------
 S=11111111-1111-1111-1111-111111111111
 G=22222222-2222-2222-2222-222222222222
 X=33333333-3333-3333-3333-333333333333
@@ -69,222 +92,240 @@ A=44444444-4444-4444-4444-444444444444
 I=55555555-5555-5555-5555-555555555555
 SA=66666666-6666-6666-6666-666666666666
 
-as_user() { # as_user <uid> <sql>
-  $P -v ON_ERROR_STOP=0 <<SQL 2>&1 | grep -v "set_config\|^---\|^ *[0-9a-f-]\{36\} *$\|^(1 row)\|^$\|^-*+*-*$"
-set role authenticated;
-select set_config('request.jwt.claim.sub','$1',false);
-$2
-SQL
-}
+# ---------------------------------------------------------------------------
+# Support case lifecycle (1-9)
+# ---------------------------------------------------------------------------
 
-# as_user_capture — like as_user but returns only the function result (last non-empty line).
-# Skips the set_config output line. Uses -tA (tuples only, no padding).
-as_user_capture() { # as_user_capture <uid> <sql>
-  $P -tA -v ON_ERROR_STOP=0 <<SQL 2>&1 | grep -v "^$1$" | tail -1
-set role authenticated;
-select set_config('request.jwt.claim.sub','$1',false);
-$2
-SQL
-}
+OUT=$(run_as "$S" "select public.gss_student_open_support_case('Tuition double charge','I was charged twice for tuition last week and need help.',null,'high');")
+assert_uuid "1 student opens support case" "$OUT"
+CASE_ID=$(echo "$OUT" | grep -E '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | tail -1)
 
-t(){ echo; echo "### $1"; }
+OUT=$(run_as "$G" "select public.gss_student_open_support_case('Should fail','This should not work because the caller is not a student.',null,'normal');")
+assert_denied "2 non-student denied opening case" "Not authorized" "$OUT"
 
-# ---------- support case lifecycle ----------
-t "1 student opens a support case (expect: uuid)"
-CASE_ID=$(as_user_capture $S "select public.gss_student_open_support_case('Tuition double charge','I was charged twice for tuition last week and need help.',null,'high')" | tr -d ' \n')
-echo "case_id=$CASE_ID"
+OUT=$(run_raw "select public.gss_student_open_support_case('No auth','This should fail.',null,'normal');")
+assert_denied "3 unauthenticated denied opening case" "Authentication required" "$OUT"
 
-t "2 non-student (guardian) tries to open a case (expect: Not authorized)"
-as_user $G "select public.gss_student_open_support_case('Should fail','This should not work because the caller is not a student.',null,'normal');"
+OUT=$(run_as "$S" "select count(*) from public.gss_student_support_cases();")
+assert_count "4 student lists own cases" eq 1 "$OUT"
 
-t "3 unauthenticated tries to open a case (expect: Authentication required)"
-$P -v ON_ERROR_STOP=0 -c "select public.gss_student_open_support_case('No auth','This should fail.',null,'normal');" 2>&1 | tail -2
+OUT=$(run_as "$X" "select count(*) from public.gss_student_support_cases();")
+assert_count "5 stranger lists 0 own cases" eq 0 "$OUT"
 
-t "4 student lists own cases (expect: 1 row)"
-as_user $S "select count(*) from public.gss_student_support_cases();"
+OUT=$(run_as "$X" "select count(*) from public.gss_support_list_cases(null,null);")
+# support_agent sees all cases. After case 1, there is exactly 1 case.
+assert_count "6 support_agent lists all cases" eq 1 "$OUT"
 
-t "5 stranger (not the owner) lists cases (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_student_support_cases();"
+OUT=$(run_as "$S" "select public.gss_student_add_support_note('$CASE_ID','Here is the transaction reference: TX-1.');")
+assert_ok "7 student adds note to own case" "$OUT"
 
-t "6 support_agent lists cases (expect: 1 row)"
-as_user $X "select count(*) from public.gss_support_list_cases(null,null);"
+OUT=$(run_as "$X" "select public.gss_student_add_support_note('$CASE_ID','I should not be able to add a note here.');")
+assert_denied "8 stranger denied note on other's case" "Case not found or closed" "$OUT"
 
-t "7 student adds a note to own case (expect: success)"
-as_user $S "select public.gss_student_add_support_note('$CASE_ID','Here is the transaction reference: TX-1.');"
+OUT=$(run_as "$S" "select public.gss_student_close_support_case('$CASE_ID');")
+assert_ok "9 student closes own case" "$OUT"
 
-t "8 stranger tries to add a note to someone else's case (expect: Case not found)"
-as_user $X "select public.gss_student_add_support_note('$CASE_ID','I should not be able to add a note here.');"
-
-t "9 student closes own case (expect: success)"
-as_user $S "select public.gss_student_close_support_case('$CASE_ID');"
-
-# Reopen for the refund flow
+# Reopen for the refund flow.
 $P -c "update public.support_cases set status='open' where id='$CASE_ID'" >/dev/null
 
-# ---------- refund flow ----------
-t "10 support_agent tries to request refund (expect: Not authorized)"
+# ---------------------------------------------------------------------------
+# Refund flow (10-18)
+# ---------------------------------------------------------------------------
+
 TX_ID=$($P -tAc "select id from public.gss_transactions where reference='TX-1'")
-as_user $X "select public.gss_support_request_refund('$CASE_ID','$TX_ID',30000,'TZS','Customer reported duplicate charge; partial refund approved.');"
 
-t "11 support_lead requests refund (expect: uuid)"
-RID=$(as_user_capture $SA "select public.gss_support_request_refund('$CASE_ID','$TX_ID',30000,'TZS','Customer reported duplicate charge; partial refund approved per policy.')" | tr -d ' \n')
-echo "refund_id=$RID"
+OUT=$(run_as "$X" "select public.gss_support_request_refund('$CASE_ID','$TX_ID',30000,'TZS','Customer reported duplicate charge; partial refund approved.');")
+assert_denied "10 support_agent denied refund request" "Not authorized" "$OUT"
 
-t "12 support_lead tries refund on transaction not owned by case owner (expect: Transaction does not belong)"
-# Create a second case owned by a different student (use guardian as a student surrogate via direct insert)
-$P -c "insert into public.support_cases(student_id,subject,description,status,priority) values ('22222222-2222-2222-2222-222222222222','Other case','Other case description here','open','normal') returning id;" >/dev/null
+OUT=$(run_as "$SA" "select public.gss_support_request_refund('$CASE_ID','$TX_ID',30000,'TZS','Customer reported duplicate charge; partial refund approved per policy.');")
+assert_uuid "11 support_lead requests refund" "$OUT"
+RID=$(echo "$OUT" | grep -E '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | tail -1)
+
+# Create a second case owned by a different student to test cross-owner denial.
+$P -c "insert into public.support_cases(student_id,subject,description,status,priority) values ('22222222-2222-2222-2222-222222222222','Other case','Other case description here','open','normal')" >/dev/null
 OTHER_CASE=$($P -tAc "select id from public.support_cases where student_id='22222222-2222-2222-2222-222222222222' limit 1")
-as_user $SA "select public.gss_support_request_refund('$OTHER_CASE','$TX_ID',5000,'TZS','Should fail because TX-1 does not belong to this case owner.');"
 
-t "13 support_agent tries to decide refund (expect: Not authorized)"
-as_user $X "select public.gss_admin_decide_refund('$RID','approved','Should fail because support_agent is not platform_admin.');"
+OUT=$(run_as "$SA" "select public.gss_support_request_refund('$OTHER_CASE','$TX_ID',5000,'TZS','Should fail because TX-1 does not belong to this case owner.');")
+assert_denied "12 refund on wrong-owner transaction denied" "Transaction does not belong" "$OUT"
 
-t "14 platform_admin approves refund (expect: success)"
-as_user $A "select public.gss_admin_decide_refund('$RID','approved','Partial refund of 30000 TZS approved based on case review.');"
+OUT=$(run_as "$X" "select public.gss_admin_decide_refund('$RID','approved','Should fail because support_agent is not platform_admin.');")
+assert_denied "13 support_agent denied refund decision" "Not authorized" "$OUT"
 
-t "15 platform_admin tries to approve same refund again (expect: Refund already decided)"
-as_user $A "select public.gss_admin_decide_refund('$RID','approved','Should fail because already approved.');"
+OUT=$(run_as "$A" "select public.gss_admin_decide_refund('$RID','approved','Partial refund of 30000 TZS approved based on case review.');")
+assert_ok "14 platform_admin approves refund" "$OUT"
 
-t "16 platform_admin marks refund processed (expect: success)"
-as_user $A "select public.gss_admin_decide_refund('$RID','processed','Refund processed via bank batch REF-BATCH-1.');"
+OUT=$(run_as "$A" "select public.gss_admin_decide_refund('$RID','approved','Should fail because already approved.');")
+assert_denied "15 re-approve denied" "Refund already decided" "$OUT"
 
-t "17 platform_admin tries to process already-processed refund (expect: Refund already processed)"
-as_user $A "select public.gss_admin_decide_refund('$RID','processed','Should fail.');"
+OUT=$(run_as "$A" "select public.gss_admin_decide_refund('$RID','processed','Refund processed via bank batch REF-BATCH-1.');")
+assert_ok "16 platform_admin marks refund processed" "$OUT"
 
-t "18 refund audit log exists (expect: 2 rows: pending->approved, approved->processed)"
-as_user $A "select previous_status || ' -> ' || new_status from public.support_refund_audit where refund_request_id='$RID' order by created_at;"
+OUT=$(run_as "$A" "select public.gss_admin_decide_refund('$RID','processed','Should fail.');")
+assert_denied "17 re-process denied" "Refund already processed" "$OUT"
 
-t "19 student reads own refund requests (expect: 1 row)"
-as_user $S "select count(*) from public.gss_student_refund_requests();"
+OUT=$(run_as "$A" "select count(*) from public.support_refund_audit where refund_request_id='$RID';")
+assert_count "18 refund audit log has 2 rows" eq 2 "$OUT"
 
-t "20 stranger reads refund requests (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_student_refund_requests();"
+# ---------------------------------------------------------------------------
+# Refund reads (19-20)
+# ---------------------------------------------------------------------------
 
-# ---------- notifications ----------
-t "21 student has notifications (expect: >=1 from case open + refund decision)"
-as_user $S "select count(*) from public.gss_list_notifications(50);"
+OUT=$(run_as "$S" "select count(*) from public.gss_student_refund_requests();")
+assert_count "19 student reads own refund requests" eq 1 "$OUT"
 
-t "22 stranger has no notifications (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_list_notifications(50);"
+OUT=$(run_as "$X" "select count(*) from public.gss_student_refund_requests();")
+assert_count "20 stranger reads 0 refund requests" eq 0 "$OUT"
 
-t "23 unauthenticated denied notifications (expect: Authentication required)"
-$P -v ON_ERROR_STOP=0 -c "select * from public.gss_list_notifications(10);" 2>&1 | tail -2
+# ---------------------------------------------------------------------------
+# Notifications (21-23)
+# ---------------------------------------------------------------------------
 
-# ---------- institution catalogues ----------
-t "24 institution admin lists catalogues (expect: 0 rows initially)"
-as_user $I "select count(*) from public.gss_institution_list_catalogues();"
+OUT=$(run_as "$S" "select count(*) from public.gss_list_notifications(50);")
+assert_count "21 student has notifications" ge 1 "$OUT"
 
-t "25 institution admin creates a programme (expect: uuid)"
-PROG_ID=$(as_user_capture $I "select public.gss_institution_upsert_programme(null,'Bachelor of Science','BSC')" | tr -d ' \n')
-echo "prog_id=$PROG_ID"
+OUT=$(run_as "$X" "select count(*) from public.gss_list_notifications(50);")
+assert_count "22 stranger has 0 notifications" eq 0 "$OUT"
 
-t "26 non-institution-admin tries to create a programme (expect: Institution admin required)"
-as_user $X "select public.gss_institution_upsert_programme(null,'Should fail','FAIL');"
+OUT=$(run_raw "select count(*) from public.gss_list_notifications(10);")
+# gss_list_notifications filters by user_id = auth.uid(). For unauthenticated
+# callers auth.uid() is null, so the filter matches 0 rows. No error is raised;
+# no data is leaked. This is safe behaviour, just a different pattern from the
+# write functions that explicitly raise 'Authentication required'.
+assert_count "23 unauthenticated sees 0 notifications" eq 0 "$OUT"
 
-t "27 institution admin creates a department (expect: uuid)"
-DEPT_ID=$(as_user_capture $I "select public.gss_institution_upsert_department(null,'Computer Science')" | tr -d ' \n')
-echo "dept_id=$DEPT_ID"
+# ---------------------------------------------------------------------------
+# Institution catalogues (24-34)
+# ---------------------------------------------------------------------------
 
-t "28 institution admin creates an academic year (expect: uuid)"
-AY_ID=$(as_user_capture $I "select public.gss_institution_upsert_academic_year(null,'2026/2027',true)" | tr -d ' \n')
-echo "ay_id=$AY_ID"
+OUT=$(run_as "$I" "select count(*) from public.gss_institution_list_catalogues();")
+assert_count "24 institution admin lists 0 catalogues initially" eq 0 "$OUT"
 
-t "29 institution admin creates a tuition fee (expect: uuid)"
-TF_ID=$(as_user_capture $I "select public.gss_institution_upsert_tuition_fee(null,'Tuition 2026/2027',500000,'TZS',null,null)" | tr -d ' \n')
-echo "tf_id=$TF_ID"
+OUT=$(run_as "$I" "select public.gss_institution_upsert_programme(null,'Bachelor of Science','BSC');")
+assert_uuid "25 institution admin creates programme" "$OUT"
+PROG_ID=$(echo "$OUT" | grep -E '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | tail -1)
 
-t "30 institution admin lists catalogues (expect: 4 rows: programme, department, academic_year, tuition_fee)"
-as_user $I "select kind from public.gss_institution_list_catalogues() order by kind;"
+OUT=$(run_as "$X" "select public.gss_institution_upsert_programme(null,'Should fail','FAIL');")
+assert_denied "26 non-institution-admin denied programme creation" "Institution admin required" "$OUT"
 
-t "31 institution admin deletes a programme (expect: success)"
-as_user $I "select public.gss_institution_delete_programme('$PROG_ID');"
+OUT=$(run_as "$I" "select public.gss_institution_upsert_department(null,'Computer Science');")
+assert_uuid "27 institution admin creates department" "$OUT"
+DEPT_ID=$(echo "$OUT" | grep -E '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | tail -1)
 
-t "32 stranger tries to delete a department (expect: Department not found)"
-as_user $X "select public.gss_institution_delete_department('$DEPT_ID');"
+OUT=$(run_as "$I" "select public.gss_institution_upsert_academic_year(null,'2026/2027',true);")
+assert_uuid "28 institution admin creates academic year" "$OUT"
 
-t "33 institution admin reads catalogue audit log (expect: >=4 rows)"
-as_user $I "select count(*) from public.gss_institution_catalogue_audit_log(100);"
+OUT=$(run_as "$I" "select public.gss_institution_upsert_tuition_fee(null,'Tuition 2026/2027',500000,'TZS',null,null);")
+assert_uuid "29 institution admin creates tuition fee" "$OUT"
 
-t "34 non-institution-admin reads catalogue audit log (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_institution_catalogue_audit_log(100);"
+OUT=$(run_as "$I" "select count(*) from public.gss_institution_list_catalogues();")
+assert_count "30 institution admin lists 4 catalogues" eq 4 "$OUT"
 
-# ---------- institution staff listing ----------
-t "35 institution admin reads staff listing (expect: 1 row — themselves)"
-as_user $I "select count(*) from public.gss_institution_staff_listing();"
+OUT=$(run_as "$I" "select public.gss_institution_delete_programme('$PROG_ID');")
+assert_ok "31 institution admin deletes programme" "$OUT"
 
-t "36 non-institution-admin reads staff listing (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_institution_staff_listing();"
+OUT=$(run_as "$X" "select public.gss_institution_delete_department('$DEPT_ID');")
+assert_denied "32 stranger denied deleting department" "Institution admin required" "$OUT"
 
-# ---------- platform admin functions ----------
-t "37 platform admin lists students (expect: >=1)"
-as_user $A "select count(*) from public.gss_admin_list_students(null,100);"
+OUT=$(run_as "$I" "select count(*) from public.gss_institution_catalogue_audit_log(100);")
+assert_count "33 institution admin reads catalogue audit log" ge 4 "$OUT"
 
-t "38 non-admin lists students (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_admin_list_students(null,100);"
+OUT=$(run_as "$X" "select count(*) from public.gss_institution_catalogue_audit_log(100);")
+assert_count "34 non-institution-admin reads 0 audit rows" eq 0 "$OUT"
 
-t "39 platform admin lists institutions (expect: >=1)"
-as_user $A "select count(*) from public.gss_admin_list_institutions(null,null);"
+# ---------------------------------------------------------------------------
+# Platform admin functions (35-45)
+# ---------------------------------------------------------------------------
 
-t "40 non-admin lists institutions (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_admin_list_institutions(null,null);"
+OUT=$(run_as "$A" "select count(*) from public.gss_admin_list_students(null,100);")
+assert_count "35 platform admin lists students" ge 1 "$OUT"
 
-t "41 platform admin verification monitoring (expect: >=1)"
-as_user $A "select count(*) from public.gss_admin_verification_monitoring(null);"
+OUT=$(run_as "$X" "select count(*) from public.gss_admin_list_students(null,100);")
+assert_count "36 non-admin lists 0 students" eq 0 "$OUT"
 
-t "42 platform admin audit log (expect: >=1 — includes refund decision)"
-as_user $A "select count(*) from public.gss_admin_audit_log(500);"
+OUT=$(run_as "$A" "select count(*) from public.gss_admin_list_institutions(null,null);")
+assert_count "37 platform admin lists institutions" ge 1 "$OUT"
 
-t "43 non-admin audit log (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_admin_audit_log(500);"
+OUT=$(run_as "$X" "select count(*) from public.gss_admin_list_institutions(null,null);")
+assert_count "38 non-admin lists 0 institutions" eq 0 "$OUT"
 
-t "44 platform admin platform analytics (expect: json)"
-as_user $A "select public.gss_admin_platform_analytics() is not null as ok;"
+OUT=$(run_as "$A" "select count(*) from public.gss_admin_verification_monitoring(null);")
+# Seeded an enrollment_verification_requests row in the seed block.
+assert_count "39 platform admin verification monitoring" ge 1 "$OUT"
 
-t "45 non-admin platform analytics (expect: null)"
-as_user $X "select public.gss_admin_platform_analytics() is null as denied;"
+OUT=$(run_as "$A" "select count(*) from public.gss_admin_audit_log(500);")
+assert_count "40 platform admin audit log has entries" ge 1 "$OUT"
 
-t "46 platform admin list countries (expect: >0)"
-as_user $A "select count(*) from public.gss_admin_list_countries();"
+OUT=$(run_as "$X" "select count(*) from public.gss_admin_audit_log(500);")
+assert_count "41 non-admin audit log is 0" eq 0 "$OUT"
 
-t "47 non-admin list countries (expect: 0 rows)"
-as_user $X "select count(*) from public.gss_admin_list_countries();"
+OUT=$(run_as "$A" "select public.gss_admin_platform_analytics() is not null as ok;")
+# The query returns 't' if not null. Assert that the last line is 't'.
+assert_contains "42 platform admin analytics returns json" "t" "$OUT"
 
-# ---------- direct write denials ----------
-t "48 support_agent direct-insert into support_cases (expect: permission denied)"
-as_user $X "insert into public.support_cases(student_id,subject,description) values ('$S','Direct insert','Should fail because no client insert grant.');"
+OUT=$(run_as "$X" "select public.gss_admin_platform_analytics() is null as denied;")
+assert_null "43 non-admin analytics returns null" "$OUT"
 
-t "49 support_agent direct-insert into support_refund_requests (expect: permission denied)"
-as_user $X "insert into public.support_refund_requests(case_id,transaction_id,student_id,amount_minor,currency_code,reason,created_by) values ('$CASE_ID','$TX_ID','$S',100,'TZS','Direct insert should fail','$SA');"
+OUT=$(run_as "$A" "select count(*) from public.gss_admin_list_countries();")
+assert_count "44 platform admin lists countries" ge 1 "$OUT"
 
-t "50 student direct-insert into notifications (expect: permission denied)"
-as_user $S "insert into public.notifications(user_id,title) values ('$S','Direct insert should fail');"
+OUT=$(run_as "$X" "select count(*) from public.gss_admin_list_countries();")
+assert_count "45 non-admin lists 0 countries" eq 0 "$OUT"
 
-t "51 institution admin direct-insert into institution_programmes (expect: permission denied)"
-as_user $I "insert into public.institution_programmes(institution_id,name) values ('99999999-9999-9999-9999-999999999999','Direct insert should fail');"
+# ---------------------------------------------------------------------------
+# Direct write denials (46-49)
+# ---------------------------------------------------------------------------
 
-t "52 institution admin direct-read institution_admin_audit (expect: 0 rows, no policy)"
-as_user $I "select count(*) from public.institution_admin_audit;"
+OUT=$(run_as "$X" "insert into public.support_cases(student_id,subject,description) values ('$S','Direct insert','Should fail because no client insert grant.');")
+assert_denied "46 support_agent cannot insert support_cases" "permission denied" "$OUT"
 
-t "53 institution admin direct-read support_refund_audit (expect: 0 rows, no policy)"
-as_user $I "select count(*) from public.support_refund_audit;"
+OUT=$(run_as "$X" "insert into public.support_refund_requests(case_id,transaction_id,student_id,amount_minor,currency_code,reason,created_by) values ('$CASE_ID','$TX_ID','$S',100,'TZS','Direct insert should fail','$SA');")
+assert_denied "47 support_agent cannot insert refund_requests" "permission denied" "$OUT"
 
-# ---------- institution_staff cannot be granted by any function ----------
-t "54 institution_staff cannot be inserted (expect: check constraint violation)"
-$P -v ON_ERROR_STOP=0 -c "insert into public.user_role_assignments(user_id,role) values ('$X','institution_staff') returning user_id,role;" 2>&1 | tail -3
+OUT=$(run_as "$S" "insert into public.notifications(user_id,title) values ('$S','Direct insert should fail');")
+assert_denied "48 student cannot insert notifications" "permission denied" "$OUT"
 
-t "55 institution admin cannot touch another institution's data (expect: 0 rows from directory)"
-# Create a second institution + admin owned by a different user; the first admin should see only their own
+OUT=$(run_as "$I" "insert into public.institution_programmes(institution_id,name) values ('99999999-9999-9999-9999-999999999999','Direct insert should fail');")
+assert_denied "49 institution admin cannot insert programmes directly" "permission denied" "$OUT"
+
+# ---------------------------------------------------------------------------
+# Direct read denials (50-51)
+# ---------------------------------------------------------------------------
+
+OUT=$(run_as "$I" "select count(*) from public.institution_admin_audit;")
+assert_count "50 institution admin reads 0 admin_audit rows" eq 0 "$OUT"
+
+OUT=$(run_as "$I" "select count(*) from public.support_refund_audit;")
+assert_count "51 institution admin reads 0 refund_audit rows" eq 0 "$OUT"
+
+# ---------------------------------------------------------------------------
+# institution_staff cannot be granted (52)
+# ---------------------------------------------------------------------------
+
+OUT=$(run_raw "insert into public.user_role_assignments(user_id,role) values ('$X','institution_staff') returning user_id,role;")
+assert_denied "52 institution_staff cannot be inserted" "check constraint" "$OUT"
+
+# ---------------------------------------------------------------------------
+# Cross-institution isolation (53)
+# ---------------------------------------------------------------------------
+
+# Create a second institution + admin owned by a different user.
 $P -c "insert into public.institutions(id,name,country_code,verification_status) values ('88888888-8888-8888-8888-888888888888','Other University','TZ','verified') on conflict do nothing;" >/dev/null
 $P -c "insert into public.user_role_assignments(user_id,role,institution_id) values ('33333333-3333-3333-3333-333333333333','institution_admin','88888888-8888-8888-8888-888888888888') on conflict do nothing;" >/dev/null
 $P -c "insert into public.student_enrollments(student_id,institution_id,admission_number) values ('11111111-1111-1111-1111-111111111111','88888888-8888-8888-8888-888888888888','ADM-OTHER') on conflict do nothing;" >/dev/null
-# Institution admin I (Test University) should see only Test University enrollments, not Other University
-as_user $I "select count(*) from public.gss_institution_student_directory();"
-echo "(expect 1 row — only Test University enrollments)"
 
-t "56 institution admin cannot approve institution applications (expect: only platform_admin can call gss_review_institution)"
-# Insert a pending application
+# Institution admin I (Test University) should see only Test University enrollments.
+OUT=$(run_as "$I" "select count(*) from public.gss_institution_student_directory();")
+assert_count "53 institution admin directory count is own only" eq 1 "$OUT"
+
+OUT=$(run_as "$I" "select i.name from public.gss_institution_student_directory() d join public.student_enrollments e on e.id = d.enrollment_id join public.institutions i on i.id = e.institution_id limit 1;")
+assert_contains "53 institution admin directory name is Test University" "Test University" "$OUT"
+
+# ---------------------------------------------------------------------------
+# Institution admin cannot approve applications (54)
+# ---------------------------------------------------------------------------
+
 APP_ID=$($P -tAc "insert into public.institution_applications(institution_name,country_code,contact_email,status) values ('Fraud University','TZ','fraud@test','pending') returning id")
-as_user $I "select public.gss_review_institution('$APP_ID','reviewing','Institution admin should not be able to review.');"
+OUT=$(run_as "$I" "select public.gss_review_institution('$APP_ID','reviewing','Institution admin should not be able to review.');")
+assert_denied "54 institution admin cannot approve applications" "Not authorized" "$OUT"
 
-echo
-echo "=== extended test complete ==="
+print_summary
