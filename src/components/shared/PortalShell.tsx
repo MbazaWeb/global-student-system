@@ -1,0 +1,5 @@
+import { Link } from "react-router-dom";
+type Props = { title: string; subtitle: string; portal: string; links: readonly string[] };
+export default function PortalShell({ title, subtitle, portal, links }: Props) {
+  return <div className="min-h-screen"><header className="bg-slate-900 text-white p-5"><div className="mx-auto max-w-6xl flex flex-wrap justify-between gap-4"><Link to="/" className="font-bold">GSS · Global Student System</Link><span className="text-slate-300">{portal} Portal · Demo</span></div></header><main className="mx-auto max-w-6xl p-6"><p className="text-blue-700 font-medium">{portal} workspace</p><h1 className="text-3xl font-bold mt-2">{title}</h1><p className="text-slate-600 mt-2">{subtitle}</p><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">{links.map(x=><div key={x} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold">{x}</h2><p className="text-sm text-slate-500 mt-2">Module scaffold · integration pending</p></div>)}</div><p className="text-xs text-slate-500 mt-8">No live admission verification, bank connection or real wallet balance is enabled.</p></main></div>;
+}
