@@ -8,7 +8,7 @@
 #   PGPASSWORD=x bash supabase/tests/extended_access_test.sh
 #
 # Env vars (with defaults):
-#   PGHOST=localhost  PGPORT=5432  PGUSER=tester  PGDATABASE=gss
+#   PGHOST=localhost  PGPORT=5432  PGUSER=tester  PGDATABASE=gss_ext (default)
 #   PGPASSWORD must be set by the caller.
 #
 # Exits non-zero if any assertion fails.
@@ -20,6 +20,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
 # Source shared helpers (sets up $P, run_as, run_raw, assert_*).
+: "${PGDATABASE:=gss_ext}"; export PGDATABASE
 . "$SCRIPT_DIR/test_helpers.sh"
 
 # ---------------------------------------------------------------------------
@@ -327,5 +328,24 @@ assert_contains "53 institution admin directory name is Test University" "Test U
 APP_ID=$($P -tAc "insert into public.institution_applications(institution_name,country_code,contact_email,status) values ('Fraud University','TZ','fraud@test','pending') returning id")
 OUT=$(run_as "$I" "select public.gss_review_institution('$APP_ID','reviewing','Institution admin should not be able to review.');")
 assert_denied "54 institution admin cannot approve applications" "Not authorized" "$OUT"
+
+# ---------------------------------------------------------------------------
+# gss_institution_self() (57-60): each admin sees only their own institution.
+# ---------------------------------------------------------------------------
+
+OUT=$(run_as "$I" "select name from public.gss_institution_self();")
+assert_contains "57 institution admin self returns Test University" "Test University" "$OUT"
+
+OUT=$(run_as "$I" "select count(*) from public.gss_institution_self();")
+assert_count "58 institution admin self returns exactly one row" eq 1 "$OUT"
+
+OUT=$(run_as "33333333-3333-3333-3333-333333333333" "select count(*) from public.gss_institution_self() where name = 'Test University';")
+assert_count "59 other institution admin does not see Test University" eq 0 "$OUT"
+
+OUT=$(run_as "11111111-1111-1111-1111-111111111111" "select count(*) from public.gss_institution_self();")
+assert_count "59b student (no institution_admin role) gets zero rows" eq 0 "$OUT"
+
+OUT=$(run_raw "set role anon; select count(*) from public.gss_institution_self();")
+assert_denied "60 anonymous role denied execute on gss_institution_self" "permission denied" "$OUT"
 
 print_summary

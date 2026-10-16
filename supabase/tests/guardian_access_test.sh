@@ -8,7 +8,7 @@
 #   PGPASSWORD=x bash supabase/tests/guardian_access_test.sh
 #
 # Env vars (with defaults):
-#   PGHOST=localhost  PGPORT=5432  PGUSER=tester  PGDATABASE=gss
+#   PGHOST=localhost  PGPORT=5432  PGUSER=tester  PGDATABASE=gss_base (default)
 #   PGPASSWORD must be set by the caller.
 #
 # Exits non-zero if any assertion fails.
@@ -20,6 +20,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
 # Source shared helpers (sets up $P, run_as, run_raw, assert_*).
+: "${PGDATABASE:=gss_base}"; export PGDATABASE
 . "$SCRIPT_DIR/test_helpers.sh"
 
 # ---------------------------------------------------------------------------
