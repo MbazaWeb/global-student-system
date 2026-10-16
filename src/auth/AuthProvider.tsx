@@ -7,7 +7,7 @@ const AuthContext=createContext<State|null>(null);
 export function AuthProvider({children}:{children:ReactNode}){
  const [user,setUser]=useState<User|null>(null);const [roles,setRoles]=useState<PortalRole[]>([]);const [loading,setLoading]=useState(true);
  useEffect(()=>{let active=true;const client=supabase;if(!client){setLoading(false);return;}
- async function update(next:User|null){if(!active)return;setLoading(true);setUser(next);setRoles([]);
+ async function update(next:User|null){if(!active||!client)return;setLoading(true);setUser(next);setRoles([]);
   if(next){const {data,error}=await client.from("user_role_assignments").select("role").eq("user_id",next.id);
    if(!error&&active)setRoles((data??[]).map(row=>row.role as PortalRole));}
   if(active)setLoading(false);

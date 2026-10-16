@@ -42,7 +42,7 @@ function Splash(){
   </div>
  </main>;
 }
-function Home(){
+export function Home(){
  const {user,signOut}=useAuth();
  return <div className="min-h-screen bg-[#f5f7fb] text-slate-900">
   <header className="bg-[#1761c5] text-white"><div className="mx-auto flex max-w-lg items-center justify-between px-5 py-5"><div className="flex items-center gap-3"><img src="/s-wallet.svg" alt="S Wallet" className="h-11 w-11 rounded-xl bg-white object-contain p-1"/><div><p className="text-lg font-extrabold leading-tight">Global Student</p><p className="text-xs text-blue-100">System</p></div></div><Link to={user?"/dashboard":"/login"} className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold">{user?"Dashboard":"Sign in"}</Link></div></header>
