@@ -20,11 +20,13 @@ const SETTLE_AFTER_MS = 4_000;
  * the live-mode throw and the localStorage persistence guard.
  */
 const MODE = import.meta.env.VITE_MOBILE_MONEY_MODE;
-if (MODE === "live") {
-  throw new Error(
-    "VITE_MOBILE_MONEY_MODE=live: the mock mobile-money adapter cannot be used in live mode. " +
-    "Configure walletService to use a real adapter that calls a server-side Edge Function."
-  );
+const LIVE_MODE = MODE === "live";
+
+/** Fail closed in live mode: this adapter never processes real money. The app itself keeps loading. */
+function assertNotLive(): void {
+  if (LIVE_MODE) {
+    throw new PaymentError("Live mobile-money payments are not enabled in this build.");
+  }
 }
 const PERSIST_TO_LOCAL_STORAGE = (MODE === undefined || MODE === "" || MODE === "sandbox");
 
@@ -82,6 +84,7 @@ function settle(entry: Stored): void {
 
 export const mockMobileMoneyAdapter: MobileMoneyAdapter = {
   async requestPayment(request: PaymentRequest): Promise<PaymentResult> {
+    assertNotLive();
     const minimum = request.purpose === "merchant" ? 100 : MIN_TZS;
     if (request.purpose === "merchant" && (!request.merchantName?.trim() || !request.merchantCode?.trim())) throw new PaymentError("Select a merchant before paying.");
     if (!Number.isInteger(request.amountTzs) || request.amountTzs < minimum || request.amountTzs > MAX_TZS) {
@@ -117,6 +120,7 @@ export const mockMobileMoneyAdapter: MobileMoneyAdapter = {
   },
 
   async getPaymentStatus(reference: string): Promise<PaymentResult> {
+    assertNotLive();
     const entry = store.get(reference);
     if (!entry) throw new PaymentError("Payment not found.");
     settle(entry);
