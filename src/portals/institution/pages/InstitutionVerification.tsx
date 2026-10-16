@@ -1,2 +1,7 @@
-/** InstitutionVerification scaffold. Wire approved services and authorization before production use. */
-export default function InstitutionVerification(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Institution Verification</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import { Navigate } from "react-router-dom";
+
+/** InstitutionVerification — redirect to /institution/apply per audit instructions.
+ *  The apply form is the canonical entry point for institution onboarding. */
+export default function InstitutionVerification() {
+  return <Navigate to="/institution/apply" replace />;
+}

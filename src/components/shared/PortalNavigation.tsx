@@ -5,7 +5,7 @@ import { useAuth } from "../../auth/AuthProvider";
 type NavItem={label:string;to:string};
 const groups:{role:string;items:NavItem[]}[]=[
  {role:"student",items:[{label:"Wallet",to:"/student/wallet"},{label:"Merchant",to:"/student/merchant"},{label:"Pay",to:"/student/wallet?pay=tuition"},{label:"Profile",to:"/student/profile"},{label:"Family",to:"/student/guardians"}]},
- {role:"institution_admin",items:[{label:"Dashboard",to:"/institution/dashboard"},{label:"Student Directory",to:"/institution/students"},{label:"Verification Queue",to:"/institution/verification"},{label:"Transactions",to:"/institution/transactions"},{label:"Finance",to:"/institution/finance"}]},
+ {role:"institution_admin",items:[{label:"Dashboard",to:"/institution/dashboard"},{label:"Directory",to:"/institution/students"},{label:"Verification",to:"/institution/verification"},{label:"Finance",to:"/institution/finance"},{label:"Tuition",to:"/institution/tuition"},{label:"Programmes",to:"/institution/programmes"},{label:"Staff",to:"/institution/staff"},{label:"Audit",to:"/institution/audit"}]},
  {role:"platform_admin",items:[{label:"Dashboard",to:"/admin/dashboard"},{label:"Institution Approvals",to:"/admin/institutions/approvals"},{label:"Admin Assignments",to:"/admin/institutions/admins"},{label:"Roles",to:"/admin/roles"}]},
  {role:"parent_guardian",items:[{label:"Children",to:"/guardian/dashboard"}]},
  {role:"support_agent",items:[{label:"Dashboard",to:"/support/dashboard"},{label:"Cases",to:"/support/cases"},{label:"Transactions",to:"/support/transactions"},{label:"Refunds",to:"/support/refunds"}]},

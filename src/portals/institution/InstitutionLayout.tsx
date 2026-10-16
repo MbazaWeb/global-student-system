@@ -1,2 +1,6 @@
 import type { ReactNode } from "react";
-export default function InstitutionLayout({ children }: { children: ReactNode }) { return <>{children}</>; }
+
+/** InstitutionLayout — passthrough wrapper. Global AuthenticatedLayout handles chrome. */
+export default function InstitutionLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}

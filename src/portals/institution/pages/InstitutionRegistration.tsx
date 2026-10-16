@@ -1,2 +1,7 @@
-/** InstitutionRegistration scaffold. Wire approved services and authorization before production use. */
-export default function InstitutionRegistration(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Institution Registration</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import { Navigate } from "react-router-dom";
+
+/** InstitutionRegistration — redirect to /institution/apply per audit instructions.
+ *  Avoids duplicating the application form. */
+export default function InstitutionRegistration() {
+  return <Navigate to="/institution/apply" replace />;
+}

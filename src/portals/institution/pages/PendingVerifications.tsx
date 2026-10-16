@@ -1,2 +1,8 @@
-/** PendingVerifications scaffold. Wire approved services and authorization before production use. */
-export default function PendingVerifications(){ return <section className="rounded-xl border bg-white p-6"><h1 className="text-2xl font-bold">Pending Verifications</h1><p className="text-slate-500 mt-2">Feature scaffold — not connected to live student or banking data.</p></section>; }
+import { Navigate } from "react-router-dom";
+
+/** PendingVerifications — redirect to the verification queue with a pending filter.
+ *  The StudentVerification page already has its own status filter, so this
+ *  route simply lands the user there. */
+export default function PendingVerifications() {
+  return <Navigate to="/institution/verification" replace />;
+}
