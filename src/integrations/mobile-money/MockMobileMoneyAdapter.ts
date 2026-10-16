@@ -6,6 +6,19 @@ const MIN_TZS = 1_000;
 const MAX_TZS = 3_000_000;
 const SETTLE_AFTER_MS = 4_000;
 
+/**
+ * Per the project rule: the mock adapter may persist to localStorage only
+ * when VITE_MOBILE_MONEY_MODE is unset or "sandbox". Live mode requires a
+ * server endpoint (VITE_MOBILE_MONEY_ENDPOINT); if "live" is set without
+ * one, the adapter throws rather than silently degrading to sandbox.
+ */
+const MODE = import.meta.env.VITE_MOBILE_MONEY_MODE;
+const LIVE_ENDPOINT = import.meta.env.VITE_MOBILE_MONEY_ENDPOINT;
+if (MODE === "live" && !LIVE_ENDPOINT) {
+  throw new Error("VITE_MOBILE_MONEY_MODE=live requires VITE_MOBILE_MONEY_ENDPOINT to be set.");
+}
+const PERSIST_TO_LOCAL_STORAGE = (MODE === undefined || MODE === "" || MODE === "sandbox");
+
 interface Stored {
   result: PaymentResult;
   msisdn: string;
@@ -15,10 +28,16 @@ interface Stored {
 const store = new Map<string, Stored>();
 let storageKey = "";
 function persist(): void {
+  if (!PERSIST_TO_LOCAL_STORAGE) return;
   if (!storageKey || typeof localStorage === "undefined") return;
   localStorage.setItem(storageKey, JSON.stringify([...store.entries()]));
 }
 export function setSandboxUser(userId: string): void {
+  if (!PERSIST_TO_LOCAL_STORAGE) {
+    store.clear();
+    storageKey = "";
+    return;
+  }
   const key = `gss-sandbox-wallet-v1:${userId}`;
   if (typeof localStorage === "undefined") return;
   const raw = localStorage.getItem(key);
