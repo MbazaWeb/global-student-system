@@ -22,6 +22,9 @@ export default function PayMerchant(){
  const [error,setError]=useState("");
  const [favourites,setFavourites]=useState<string[]>([]);
  const [recent,setRecent]=useState<{merchant:Merchant;amount:number;date:string}[]>([]);
+ // localStorage stores ONLY merchant codes (e.g. "mpesa:100001") for the
+ // favourites list — no personal data, no financial data, no payment amounts.
+ // Merchant codes are public directory entries (network + merchant number).
  const storageKey=user?`gss-merchant-favourites-v1:${user.id}`:null;
 
  useEffect(()=>{

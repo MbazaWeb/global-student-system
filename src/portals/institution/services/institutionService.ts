@@ -30,13 +30,6 @@ export type InstitutionSelf = {
   created_at: string;
 };
 
-export type StaffRow = {
-  user_id: string;
-  email: string;
-  role: string;
-  created_at: string;
-};
-
 export type CatalogueAuditRow = {
   id: string;
   table_name: string;
@@ -62,12 +55,6 @@ export const institutionService = {
     const { data, error } = await db().rpc("gss_institution_self");
     fail(error);
     return (data ?? null) as InstitutionSelf | null;
-  },
-
-  async staff(): Promise<StaffRow[]> {
-    const { data, error } = await db().rpc("gss_institution_staff_listing");
-    fail(error);
-    return (data ?? []) as StaffRow[];
   },
 
   async listCatalogues(): Promise<CatalogueRow[]> {

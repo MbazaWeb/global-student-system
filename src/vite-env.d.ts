@@ -4,7 +4,6 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_MOBILE_MONEY_MODE?: string;
-  readonly VITE_MOBILE_MONEY_ENDPOINT?: string;
 }
 
 interface ImportMeta {
