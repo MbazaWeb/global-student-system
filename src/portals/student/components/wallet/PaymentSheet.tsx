@@ -163,7 +163,7 @@ export default function PaymentSheet({ initialPurpose = "wallet_topup", initialA
   }, [step, result, onFinished]);
 
   async function submit(bankOtpToken?:string) {
-    if(savePreferred&&preferredKey&&msisdn&&detectedProvider?.id===source&&source!=="bank"&&source!=="wallet"&&source){
+    if(savePreferred&&preferredKey&&msisdn&&detectedProvider?.id===source&&source){
       try{localStorage.setItem(preferredKey,JSON.stringify({phone:msisdn,source}));setSavedPhone({phone:msisdn,source});}catch{/* Payment remains available if browser storage is blocked. */}
     }
     if (!sourceValid || !provider || !amountValid) return;
