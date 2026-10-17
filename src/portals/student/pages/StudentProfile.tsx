@@ -7,6 +7,7 @@ import { useAuth } from "../../../auth/AuthProvider";
 type Details = { name: string; phone: string; country: string; dob: string; avatarPath:string };
 const empty: Details = { name: "", phone: "", country: "", dob:"", avatarPath:"" };
 const services = [
+  { label: "Family Access", to: "/student/guardians", description: "Manage parent and guardian access to your student account" },
   { label: "Bank Integration", to: "/student/bank", description: "View bank connection and account details" },
   { label: "Global ID", to: "/student/identity", description: "View your digital student identity" },
   { label: "Admissions", to: "/student/admission", description: "Submit and manage your enrollment" },
