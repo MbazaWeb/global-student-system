@@ -1,5 +1,5 @@
 import type { MobileMoneyAdapter, PaymentRequest, PaymentResult } from "../../../integrations/mobile-money/MobileMoneyAdapter";
-import { getSandboxBalanceTzs, listSandboxActivity, mockMobileMoneyAdapter, setSandboxUser } from "../../../integrations/mobile-money/MockMobileMoneyAdapter";
+import { getSandboxBalanceTzs, listSandboxActivity, mockMobileMoneyAdapter, setSandboxUser, sandboxWalletOutgoing } from "../../../integrations/mobile-money/MockMobileMoneyAdapter";
 import { supabase } from "../../../lib/supabase";
 import { bankPayload, consumeBankOtp, getDemoBank } from "../../../integrations/banking/demoBankSecurity";
 
@@ -31,6 +31,10 @@ export const walletService = {
       consumeBankOtp(request.bankOtpToken,userId,bankPayload(bank.bank,bank.number,request.amountTzs,request.purpose,request.merchantCode));
     }
     return adapter.requestPayment(request);
+  },
+  async sandboxOutgoing(purpose: "transfer" | "withdraw", amountTzs: number, destination: string) {
+    await loadStudentWallet();
+    return sandboxWalletOutgoing(purpose, amountTzs, destination);
   },
   async getPaymentStatus(reference: string) { await loadStudentWallet(); return adapter.getPaymentStatus(reference); },
   async getSummary(): Promise<WalletSummary> {
