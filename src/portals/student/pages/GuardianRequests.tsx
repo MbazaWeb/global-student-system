@@ -4,7 +4,7 @@ import { ArrowLeft, Check, CheckCircle2, Clock3, ShieldCheck, UsersRound, X, Use
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../auth/AuthProvider";
 
-type GuardianLink = { id: string; relationship: string; status: string; created_at: string };
+type GuardianLink = { id: string; guardian_name: string | null; relationship: string; status: string; created_at: string };
 type Action = "accept" | "decline" | "revoke";
 const RELATIONSHIP_LABEL: Record<string, string> = {
   parent: "Parent", legal_guardian: "Legal guardian", sponsor: "Sponsor", other: "Other",
@@ -30,11 +30,7 @@ export default function GuardianRequests() {
       return;
     }
     try {
-      const { data, error: fetchError } = await supabase
-        .from("guardian_links")
-        .select("id,relationship,status,created_at")
-        .eq("student_id", user.id)
-        .order("created_at", { ascending: false });
+      const { data, error: fetchError } = await supabase.rpc("gss_student_guardian_requests");
       if (fetchError) throw fetchError;
       setLinks((data ?? []) as GuardianLink[]);
       setError("");
@@ -53,9 +49,7 @@ export default function GuardianRequests() {
     setError("");
     setMessage("");
     try {
-      const result = action === "revoke"
-        ? await supabase.rpc("gss_student_revoke_guardian_link", { p_link_id: id })
-        : await supabase.rpc("gss_student_decide_guardian_link", { p_link_id: id, p_accept: action === "accept" });
+      const result = await supabase.rpc("gss_decide_guardian_link", { p_link_id: id, p_decision: action === "accept" ? "approved" : action === "decline" ? "rejected" : "revoked" });
       if (result.error) throw result.error;
       await load();
       setMessage(action === "accept" ? "Family access approved." : action === "decline" ? "Request declined." : "Family access revoked.");
@@ -68,7 +62,7 @@ export default function GuardianRequests() {
   }
 
   const pending = links.filter(l => l.status === "pending");
-  const active = links.filter(l => l.status === "active");
+  const active = links.filter(l => l.status === "approved");
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-5 py-6 pb-28">
@@ -100,8 +94,8 @@ export default function GuardianRequests() {
             <div className="flex items-center justify-between"><h2 id="pending-heading" className="flex items-center gap-2 text-lg font-extrabold"><Clock3 size={20} className="text-amber-600" /> Pending requests</h2><span className="text-sm font-semibold text-slate-500">{pending.length}</span></div>
             {pending.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center"><CheckCircle2 size={28} className="mx-auto text-slate-400" /><p className="mt-3 font-semibold text-slate-700">You're all caught up</p><p className="mt-1 text-sm text-slate-500">New family access requests will appear here.</p></div> : (
               <ul className="space-y-3">{pending.map(link => <li key={link.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700"><UserRound size={21} /></span><div className="min-w-0"><p className="font-bold text-slate-900">{RELATIONSHIP_LABEL[link.relationship] ?? link.relationship}</p><p className="mt-1 text-xs text-slate-500">Requested {dateLabel(link.created_at)}</p><span className="mt-2 inline-block rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">Awaiting your decision</span></div></div>
-                <div className="mt-4 grid grid-cols-2 gap-3"><button type="button" disabled={busy !== null} onClick={() => void act(link.id, "accept")} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-700 px-3 font-bold text-white disabled:opacity-50"><Check size={17} /> Approve</button><button type="button" disabled={busy !== null} onClick={() => setConfirmation({id:link.id,action:"decline",label:RELATIONSHIP_LABEL[link.relationship] ?? link.relationship})} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 font-semibold text-slate-700 disabled:opacity-50"><X size={17} /> Decline</button></div>
+                <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700"><UserRound size={21} /></span><div className="min-w-0"><p className="font-bold text-slate-900">{link.guardian_name || RELATIONSHIP_LABEL[link.relationship] || link.relationship}</p><p className="mt-1 text-xs text-slate-500">Requested {dateLabel(link.created_at)}</p><span className="mt-2 inline-block rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">Awaiting your decision</span></div></div>
+                <div className="mt-4 grid grid-cols-2 gap-3"><button type="button" disabled={busy !== null} onClick={() => void act(link.id, "accept")} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-700 px-3 font-bold text-white disabled:opacity-50"><Check size={17} /> Approve</button><button type="button" disabled={busy !== null} onClick={() => setConfirmation({id:link.id,action:"decline",label:link.guardian_name || RELATIONSHIP_LABEL[link.relationship] || link.relationship})} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 font-semibold text-slate-700 disabled:opacity-50"><X size={17} /> Decline</button></div>
               </li>)}</ul>
             )}
           </section>
