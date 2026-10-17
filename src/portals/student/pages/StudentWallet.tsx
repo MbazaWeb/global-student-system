@@ -4,7 +4,7 @@ import WalletCard from "../components/WalletCard";
 import PaymentSheet from "../components/wallet/PaymentSheet";
 import ActivityList from "../components/wallet/ActivityList";
 import { walletService, type WalletSummary } from "../services/walletService";
-import { PROVIDERS, type PaymentPurpose } from "../../../integrations/mobile-money/MobileMoneyAdapter";
+import { PROVIDERS, type PaymentPurpose, type MobileMoneyProvider } from "../../../integrations/mobile-money/MobileMoneyAdapter";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../auth/AuthProvider";
 import { GraduationCap, Landmark, ShieldCheck } from "lucide-react";
@@ -17,7 +17,7 @@ export default function StudentWallet() {
   const [searchParams, setSearchParams] = useSearchParams();
   const paying = searchParams.get("pay") === "tuition";
   const [summary, setSummary] = useState<WalletSummary | null>(null);
-  const [sheet, setSheet] = useState<{ open: boolean; purpose: PaymentPurpose }>({ open: false, purpose: "wallet_topup" });
+  const [sheet, setSheet] = useState<{ open: boolean; purpose: PaymentPurpose; source?: MobileMoneyProvider }>({ open: false, purpose: "wallet_topup" });
 
   const refresh = useCallback(async () => {
     setSummary(await walletService.getSummary());
@@ -47,7 +47,7 @@ export default function StudentWallet() {
     void load();return()=>{active=false;};
   },[user]);
 
-  const openSheet = (purpose: PaymentPurpose) => setSheet({ open: true, purpose });
+  const openSheet = (purpose: PaymentPurpose, source?: MobileMoneyProvider) => setSheet({ open: true, purpose, source });
   const closeSheet = useCallback(() => {
     setSheet((s) => ({ ...s, open: false }));
     setSearchParams((params) => { params.delete("pay"); return params; }, { replace: true });
@@ -88,17 +88,14 @@ export default function StudentWallet() {
         <h2 id="networks-heading" className="text-sm font-extrabold">Add fund</h2>
         <ul className="mt-3 grid grid-cols-2 gap-2">
           {PROVIDERS.map((p) => (
-            <li key={p.id} className="rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm">
-              <span className="mx-auto mb-2 block h-3 w-3 rounded-full" style={{ background: p.accent }} aria-hidden="true" />
-              {p.name}
-            </li>
+            <li key={p.id}><button type="button" onClick={() => openSheet("wallet_topup",p.id)} className="min-h-20 w-full rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700"><span className="mx-auto mb-2 block h-3 w-3 rounded-full" style={{ background: p.accent }} aria-hidden="true" />{p.name}<span className="mt-1 block text-blue-700">Add funds →</span></button></li>
           ))}
-          <li className="rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm">
+          <li><button type="button" onClick={() => openSheet("wallet_topup")} className="min-h-20 w-full rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm">
             <svg className="mx-auto mb-2 h-4 w-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="m3 9 9-6 9 6H3Zm0 12h18M6 10v8m6-8v8m6-8v8" />
             </svg>
-            Bank
-          </li>
+            Bank<span className="mt-1 block text-blue-700">Add funds →</span>
+          </button></li>
         </ul>
       </section>
 
@@ -113,7 +110,7 @@ export default function StudentWallet() {
       </section>
 
       {(sheet.open || paying) && (
-        <PaymentSheet initialPurpose={paying ? "tuition" : sheet.purpose} onClose={closeSheet} onFinished={refresh} />
+        <PaymentSheet initialPurpose={paying ? "tuition" : sheet.purpose} initialSource={sheet.source} onClose={closeSheet} onFinished={refresh} />
       )}
     </main>
   );
