@@ -8,9 +8,11 @@ import { PROVIDERS, type PaymentPurpose, type MobileMoneyProvider } from "../../
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../auth/AuthProvider";
 import { GraduationCap, Landmark, ShieldCheck } from "lucide-react";
+import { detectProvider, maskMsisdn, normalizeTzMsisdn } from "../../../integrations/mobile-money/phone";
 
 export default function StudentWallet() {
   const {user}=useAuth();
+  const [preferredTopUp,setPreferredTopUp]=useState<{phone:string;source:MobileMoneyProvider}|null>(null);
   const [studentDetails,setStudentDetails]=useState<{institution:string;admission:string}|null>(null);
   const [detailsLoading,setDetailsLoading]=useState(true);
   const [detailsError,setDetailsError]=useState("");
@@ -18,6 +20,18 @@ export default function StudentWallet() {
   const paying = searchParams.get("pay") === "tuition";
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [sheet, setSheet] = useState<{ open: boolean; purpose: PaymentPurpose; source?: MobileMoneyProvider }>({ open: false, purpose: "wallet_topup" });
+
+  const refreshPreferred=useCallback(()=>{
+    if(!user){setPreferredTopUp(null);return;}
+    try{
+      const raw=localStorage.getItem(`gss-preferred-topup-v1:${user.id}`);
+      const saved=raw?JSON.parse(raw):null;
+      const phone=typeof saved?.phone==="string"?normalizeTzMsisdn(saved.phone):null;
+      if(phone&&PROVIDERS.some(p=>p.id===saved.source)&&detectProvider(phone)?.id===saved.source){setPreferredTopUp({phone,source:saved.source});return;}
+    }catch{/* Optional browser preference. */}
+    setPreferredTopUp(null);
+  },[user]);
+  useEffect(()=>{refreshPreferred();window.addEventListener("storage",refreshPreferred);return()=>window.removeEventListener("storage",refreshPreferred);},[refreshPreferred]);
 
   const refresh = useCallback(async () => {
     setSummary(await walletService.getSummary());
@@ -49,9 +63,10 @@ export default function StudentWallet() {
 
   const openSheet = (purpose: PaymentPurpose, source?: MobileMoneyProvider) => setSheet({ open: true, purpose, source });
   const closeSheet = useCallback(() => {
+    refreshPreferred();
     setSheet((s) => ({ ...s, open: false }));
     setSearchParams((params) => { params.delete("pay"); return params; }, { replace: true });
-  }, [setSearchParams]);
+  }, [setSearchParams,refreshPreferred]);
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
@@ -88,7 +103,7 @@ export default function StudentWallet() {
         <h2 id="networks-heading" className="text-sm font-extrabold">Add fund</h2>
         <ul className="mt-3 grid grid-cols-2 gap-2">
           {PROVIDERS.map((p) => (
-            <li key={p.id}><button type="button" onClick={() => openSheet("wallet_topup",p.id)} className="min-h-20 w-full rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700"><span className="mx-auto mb-2 block h-3 w-3 rounded-full" style={{ background: p.accent }} aria-hidden="true" />{p.name}<span className="mt-1 block text-blue-700">Add funds →</span></button></li>
+            <li key={p.id}><button type="button" onClick={() => openSheet("wallet_topup",p.id)} className="min-h-20 w-full rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700"><span className="mx-auto mb-2 block h-3 w-3 rounded-full" style={{ background: p.accent }} aria-hidden="true" />{p.name}{preferredTopUp?.source===p.id?<><span className="mt-1 block text-emerald-700">✓ Saved number</span><span className="mt-1 block font-mono text-slate-600">{maskMsisdn(preferredTopUp.phone)}</span></>:<span className="mt-1 block text-blue-700">Add funds →</span>}</button></li>
           ))}
           <li><button type="button" onClick={() => openSheet("wallet_topup")} className="min-h-20 w-full rounded-xl bg-white p-3 text-center text-xs font-semibold shadow-sm">
             <svg className="mx-auto mb-2 h-4 w-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
