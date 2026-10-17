@@ -131,10 +131,13 @@ export const mockMobileMoneyAdapter: MobileMoneyAdapter = {
 export function sandboxWalletOutgoing(purpose: "transfer" | "withdraw", amountTzs: number, destination: string): PaymentResult {
   assertNotLive();
   if (!Number.isSafeInteger(amountTzs) || amountTzs < MIN_TZS || amountTzs > MAX_TZS) throw new PaymentError("Enter an amount between TZS 1,000 and TZS 3,000,000.");
-  if (!/^255[0-9]{9}$/.test(destination)) throw new PaymentError("Enter a valid Tanzanian mobile number.");
+  const mobile=/^255[0-9]{9}$/.test(destination);
+  const bank=purpose==="transfer"&&/^BANK:[^:]{2,100}:\\d{6,24}$/.test(destination);
+  const agent=purpose==="withdraw"&&/^AGENT:[a-zA-Z0-9-]{3,30}$/.test(destination);
+  if (!(purpose==="transfer"&&(mobile||bank) || agent)) throw new PaymentError("Enter valid transfer destination or Wakala agent code.");
   if (amountTzs > getSandboxBalanceTzs()) throw new PaymentError("Insufficient sandbox wallet balance.");
   const reference = makeReference();
-  const result: PaymentResult = { reference, status:"completed", provider:"wallet", amountTzs, purpose, maskedMsisdn:maskMsisdn(destination), createdAt:new Date().toISOString() };
+  const result: PaymentResult = { reference, status:"completed", provider:"wallet", amountTzs, purpose, maskedMsisdn: bank ? "Bank •••• "+destination.slice(-4) : agent ? "Wakala "+destination.slice(6) : maskMsisdn(destination), createdAt:new Date().toISOString() };
   store.set(reference,{result,msisdn:"",createdAt:Date.now()});
   persist();
   return result;
