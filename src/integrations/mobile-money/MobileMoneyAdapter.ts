@@ -3,7 +3,7 @@
 // Operator API keys must never reach the browser.
 
 export type MobileMoneyProvider = "mpesa" | "airtel" | "mixx";
-export type PaymentPurpose = "wallet_topup" | "tuition" | "fees" | "merchant";
+export type PaymentPurpose = "wallet_topup" | "tuition" | "fees" | "merchant" | "transfer" | "withdraw";
 export type PaymentStatus = "pending" | "completed" | "failed";
 
 export interface ProviderInfo {
