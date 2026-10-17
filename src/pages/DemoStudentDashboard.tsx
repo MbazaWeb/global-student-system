@@ -1,0 +1,7 @@
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { getDemoStudent, signOutDemo } from "../demo/demoEnrollment";
+export default function DemoStudentDashboard(){
+ const navigate=useNavigate();const student=getDemoStudent();
+ if(!student)return <Navigate to="/login" replace/>;
+ return <main className="min-h-screen bg-slate-50 px-4 py-10"><section className="mx-auto max-w-xl rounded-3xl bg-white p-7 shadow-lg"><div className="mb-5 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900">DEMO ONLY · No Supabase session · No real wallet, payments, or student records</div><h1 className="text-3xl font-extrabold">Welcome, {student.name}</h1><p className="mt-2 text-slate-500">Demo student dashboard</p><div className="mt-7 grid gap-3 rounded-xl bg-slate-50 p-5 text-sm"><p><strong>Mobile:</strong> +{student.phone}</p><p><strong>Student number:</strong> {student.registration}</p><p><strong>Institution:</strong> {student.university}</p><p><strong>Year of study:</strong> {student.year}</p></div><div className="mt-6 rounded-xl border p-5"><h2 className="font-bold">Wallet preview</h2><p className="mt-2 text-sm text-slate-600">Balance and transactions unavailable in demo. No funds can be transferred or withdrawn.</p></div><button onClick={()=>{signOutDemo();navigate("/login",{replace:true});}} className="mt-6 w-full rounded-xl bg-blue-700 p-3 font-bold text-white">Sign out of demo</button><Link to="/register" className="mt-4 block text-center text-sm text-blue-700">Start a new demo registration</Link></section></main>;
+}
