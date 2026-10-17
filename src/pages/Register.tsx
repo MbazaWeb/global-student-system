@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { supabase } from "../lib/supabase";
 import { normalizeTzMsisdn } from "../integrations/mobile-money/phone";
 
 const stages=["Mobile number","OTP verification","Identity","Student details","Security PIN"] as const;
