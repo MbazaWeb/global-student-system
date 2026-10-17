@@ -81,7 +81,7 @@ export default function StudentWallet() {
       />
 
       <section aria-labelledby="student-fees-heading" className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center gap-3 border-b border-slate-100 p-5"><span className="rounded-xl bg-blue-50 p-2 text-blue-700"><GraduationCap size={22} aria-hidden="true" /></span><div><h2 id="student-fees-heading" className="font-extrabold">My tuition & fees</h2><p className="text-xs text-slate-500">Student and institution details</p></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5"><div className="flex items-center gap-3"><span className="rounded-xl bg-blue-50 p-2 text-blue-700"><GraduationCap size={22} aria-hidden="true" /></span><div><h2 id="student-fees-heading" className="font-extrabold">My tuition & fees</h2><p className="text-xs text-slate-500">Student and institution details</p></div></div><div className="flex flex-wrap gap-2"><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">Private Fund</span><span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">Government Fund</span></div></div>
         {detailsError&&<p role="alert" className="px-5 pt-4 text-sm text-red-700">{detailsError}</p>}
         <dl className="space-y-4 p-5">
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Course</dt><dd className="mt-1 text-sm font-semibold">Not available yet</dd></div>
@@ -89,7 +89,7 @@ export default function StudentWallet() {
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admission number</dt><dd className="mt-1 text-sm font-semibold">{detailsLoading?"Loading…":detailsError?"Unavailable":studentDetails?.admission??"Not added"}</dd></div>
         </dl>
         <dl className="grid grid-cols-3 gap-2 border-t border-slate-100 bg-slate-50 p-4">{[{label:"My tuition fee",color:"text-slate-900"},{label:"Paid fee",color:"text-emerald-700"},{label:"Balance fee",color:"text-amber-700"}].map(item=><div key={item.label}><dt className="text-xs text-slate-500">{item.label}</dt><dd className={`mt-2 text-sm font-bold ${item.color}`}>Not available</dd></div>)}</dl>
-        <p className="px-5 py-3 text-xs text-slate-500">Course and fee records are awaiting institution connection.</p>
+        <p className="px-5 py-3 text-xs text-slate-500">Funding badges identify supported categories, not verified funding or money received. Course and fee records are awaiting institution connection.</p>
         {!detailsLoading&&!studentDetails&&!detailsError&&<Link to="/student/admission" className="block px-5 pb-4 text-sm font-semibold text-blue-700">Add admission details →</Link>}
       </section>
 
