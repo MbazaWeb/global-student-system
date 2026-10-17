@@ -78,6 +78,7 @@ export default function StudentWallet() {
         balanceTzs={summary?.balanceTzs ?? 0}
         onTopUp={() => openSheet("wallet_topup")}
         onPayTuition={() => openSheet("tuition")}
+        onOutgoingComplete={() => { void refresh(); }}
       />
 
       <section aria-labelledby="student-fees-heading" className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
