@@ -2,17 +2,18 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
+import { normalizeTzMsisdn } from "../integrations/mobile-money/phone";
 export default function Login(){
  const {user,loading}=useAuth();const location=useLocation();
- const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [showPassword,setShowPassword]=useState(false);const [error,setError]=useState("");const [busy,setBusy]=useState(false);
+ const [identifier,setIdentifier]=useState("");const [password,setPassword]=useState("");const [showPassword,setShowPassword]=useState(false);const [error,setError]=useState("");const [busy,setBusy]=useState(false);
  const from=(location.state as {from?:string}|null)?.from;
  if(!loading&&user)return <Navigate to={from?.startsWith("/")&&!from.startsWith("//")?from:"/dashboard"} replace/>;
  async function submit(e:FormEvent){e.preventDefault();setBusy(true);setError("");
  if(!supabase){setError("Service is temporarily unavailable.");setBusy(false);return;}
- try{const result=await supabase.auth.signInWithPassword({email,password});if(result.error)setError(result.error.message);}catch{setError("Unable to connect. Please check your internet and try again.");}finally{setBusy(false);}}
+ try{const value=identifier.trim();const phone=normalizeTzMsisdn(value);if(!phone&&!value.includes("@")){setError("Enter a valid mobile number or staff email.");return;}const result=await supabase.auth.signInWithPassword(phone?{phone:"+"+phone,password}:{email:value,password});if(result.error)setError(result.error.message);}catch{setError("Unable to connect. Please check your internet and try again.");}finally{setBusy(false);}}
  return <main className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]"><div className="rounded-b-[2.5rem] bg-gradient-to-br from-[#1761c5] to-[#0f347d] px-6 pb-12 pt-14 text-white"><div className="mx-auto max-w-md"><img src="/s-wallet.svg" alt="S Wallet logo" className="h-20 w-20 rounded-2xl bg-white object-contain p-2 shadow-lg"/><h1 className="mt-8 text-3xl font-extrabold">Welcome back</h1><p className="mt-2 text-sm text-blue-100">Sign in to your Global Student System account.</p></div></div>
  <div className="mx-auto -mt-6 w-full max-w-md flex-1 px-5 pb-8"><form onSubmit={submit} className="grid gap-5 rounded-3xl bg-white p-6 shadow-lg"><div><h2 className="text-xl font-extrabold">Sign in</h2><p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p></div>
- <label className="text-sm font-semibold text-slate-700">Email address<input required type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-base outline-none focus:border-blue-600" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+ <label className="text-sm font-semibold text-slate-700">Mobile number (students) or email (staff)<input required type="text" autoComplete="username" placeholder="07XXXXXXXX or staff@example.com" className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-base outline-none focus:border-blue-600" value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
  <label className="text-sm font-semibold text-slate-700">Password<div className="relative mt-2"><input required type={showPassword?"text":"password"} autoComplete="current-password" placeholder="Enter password" className="block w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 pr-16 text-base outline-none focus:border-blue-600" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" onClick={()=>setShowPassword(v=>!v)} className="absolute inset-y-0 right-3 text-sm font-semibold text-blue-700">{showPassword?"Hide":"Show"}</button></div></label>
  {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
  <button disabled={busy||loading} className="rounded-xl bg-blue-700 px-5 py-3.5 text-base font-bold text-white disabled:opacity-60">{busy?"Signing in…":loading?"Checking session…":"Sign in →"}</button>
