@@ -128,9 +128,20 @@ export const mockMobileMoneyAdapter: MobileMoneyAdapter = {
   },
 };
 
+export function sandboxWalletOutgoing(purpose: "transfer" | "withdraw", amountTzs: number, destination: string): PaymentResult {
+  assertNotLive();
+  if (!Number.isSafeInteger(amountTzs) || amountTzs < MIN_TZS || amountTzs > MAX_TZS) throw new PaymentError("Enter an amount between TZS 1,000 and TZS 3,000,000.");
+  if (!/^255[0-9]{9}$/.test(destination)) throw new PaymentError("Enter a valid Tanzanian mobile number.");
+  if (amountTzs > getSandboxBalanceTzs()) throw new PaymentError("Insufficient sandbox wallet balance.");
+  const reference = makeReference();
+  const result: PaymentResult = { reference, status:"completed", provider:"wallet", amountTzs, purpose, maskedMsisdn:maskMsisdn(destination), createdAt:new Date().toISOString() };
+  store.set(reference,{result,msisdn:"",createdAt:Date.now()});
+  persist();
+  return result;
+}
 export function getSandboxBalanceTzs(): number {
   for (const entry of store.values()) settle(entry);
-  return [...store.values()].reduce((balance,{result})=>result.status!=="completed"?balance:result.purpose==="wallet_topup"?balance+result.amountTzs:result.provider==="wallet"?balance-result.amountTzs:balance,0);
+  return [...store.values()].reduce((balance,{result})=>result.status!=="completed"?balance:result.purpose==="wallet_topup"?balance+result.amountTzs:(result.provider==="wallet" || result.purpose==="transfer" || result.purpose==="withdraw")?balance-result.amountTzs:balance,0);
 }
 
 export function listSandboxActivity(): PaymentResult[] {
