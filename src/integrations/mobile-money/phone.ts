@@ -1,13 +1,13 @@
 import { PROVIDERS, type ProviderInfo } from "./MobileMoneyAdapter";
 
-/** Accepts +255 7XX…, 255…, 07XX… or 7XX… and returns 255XXXXXXXXX, or null if invalid. */
+/** Accepts +255 6/7/8/9XX…, 255…, 06/07/08/09XX… or 6/7/8/9XX… and returns 255XXXXXXXXX, or null if invalid. */
 export function normalizeTzMsisdn(input: string): string | null {
   const digits = input.replace(/\D/g, "");
   let national: string | null = null;
   if (digits.length === 12 && digits.startsWith("255")) national = digits.slice(3);
   else if (digits.length === 10 && digits.startsWith("0")) national = digits.slice(1);
   else if (digits.length === 9) national = digits;
-  if (!national || !/^[67]\d{8}$/.test(national)) return null;
+  if (!national || !/^[6789]\d{8}$/.test(national)) return null;
   return `255${national}`;
 }
 
