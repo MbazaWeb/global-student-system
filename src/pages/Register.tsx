@@ -13,7 +13,7 @@ export default function Register(){
  async function next(e:FormEvent){e.preventDefault();setMessage("");if(!supabase){setMessage("Supabase is not configured.");return;}
  setBusy(true);
  try{
- if(step===0){if(!mobile)throw new Error("Enter a valid Tanzanian mobile number.");const {error}=await supabase.auth.signInWithOtp({phone:"+"+mobile,options:{shouldCreateUser:false}});if(error)throw error;setStep(1);setMessage("Enter the SMS code. If your number is new, contact support to enable phone onboarding.");}
+ if(step===0){if(!mobile)throw new Error("Enter a valid Tanzanian mobile number.");const {error}=await supabase.auth.signInWithOtp({phone:"+"+mobile,options:{shouldCreateUser:true}});if(error){if(/signups not allowed|signup.*disabled/i.test(error.message))throw new Error("New registrations are disabled in Supabase Auth. Enable new user signups and Phone/SMS authentication in the Supabase dashboard.");throw error;}setStep(1);setMessage("Enter the SMS verification code sent to your phone.");}
  else if(step===1){if(!mobile||!/^\\d{6,8}$/.test(otp))throw new Error("Enter the SMS OTP.");const {error}=await supabase.auth.verifyOtp({phone:"+"+mobile,token:otp,type:"sms"});if(error)throw error;setStep(2);}
  else if(step===2){if(!name.trim())throw new Error("Enter full name.");if(minor&&!guardian.trim())throw new Error("Enter guardian name.");if(!minor&&!/^\\d{8}-\\d{5}-\\d{5}-\\d{3}$/.test(nida))throw new Error("NIDA format: 19990101-12345-00000-123");setStep(3);}
  else if(step===3){if(!registration.trim()||!university.trim())throw new Error("Enter student registration number and university.");if(!Number.isInteger(Number(year))||Number(year)<1||Number(year)>12)throw new Error("Select a valid year of study.");setStep(4);}
