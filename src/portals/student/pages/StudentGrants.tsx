@@ -1,44 +1,25 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, GraduationCap, Landmark, ShieldCheck, Wallet, BookOpen, Clock3 } from "lucide-react";
+import { ArrowLeft, GraduationCap } from "lucide-react";
+import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../auth/AuthProvider";
 
-const sections = [
-  { title: "Government loans", description: "Approved loan amounts, disbursement schedules and repayment information when verified funding records are available.", icon: Landmark },
-  { title: "Grants & scholarships", description: "Track non-repayable funding and sponsorship awards from verified funding providers.", icon: GraduationCap },
-  { title: "Funding allocations", description: "See how disbursed funding is allocated to tuition, accommodation, meals, books and other eligible costs.", icon: BookOpen },
-];
-
-export default function StudentGrants() {
-  return <main className="mx-auto max-w-2xl space-y-5 px-5 py-6 pb-28">
-    <Link to="/student/profile" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-blue-700"><ArrowLeft size={18} /> Back to profile</Link>
-    <header className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-6 text-white shadow-sm">
-      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15"><GraduationCap size={25} /></span>
-      <p className="mt-4 text-xs font-bold uppercase tracking-wider text-blue-100">Student funding center</p>
-      <h1 className="mt-1 text-2xl font-extrabold">Grants & Loans</h1>
-      <p className="mt-2 text-sm leading-6 text-blue-100">Your education funding, disbursements and remaining balances in one place.</p>
-    </header>
-    <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-      <ShieldCheck size={21} className="mt-0.5 shrink-0" />
-      <p><strong>No verified funding connected yet.</strong> Funding information will appear when your institution or funding provider connects and confirms your records. No loan or grant has been assumed.</p>
-    </div>
-    <section aria-label="Funding overview" className="grid grid-cols-2 gap-3">
-      {[
-        { label: "Approved funding", icon: GraduationCap },
-        { label: "Amount disbursed", icon: Landmark },
-        { label: "Remaining allocation", icon: Wallet },
-        { label: "Awaiting disbursement", icon: Clock3 },
-      ].map(item => <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <item.icon size={20} className="text-blue-700" aria-hidden="true" />
-        <p className="mt-3 text-xs font-semibold text-slate-500">{item.label}</p>
-        <p className="mt-1 text-lg font-extrabold text-slate-900">Not available</p>
-      </div>)}
-    </section>
-    <section className="space-y-3">
-      <h2 className="text-lg font-extrabold">Funding details</h2>
-      {sections.map(({ title, description, icon: Icon }) => <article key={title} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700"><Icon size={20} /></span>
-        <div><h3 className="font-bold text-slate-900">{title}</h3><p className="mt-1 text-sm leading-6 text-slate-600">{description}</p><p className="mt-2 text-xs font-semibold text-slate-500">Awaiting verified data</p></div>
-      </article>)}
-    </section>
-    <p className="rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-600">Approved funding is not the same as cash available to spend. Tuition paid directly to an institution, restricted allocations and undisbursed amounts must be tracked separately.</p>
-  </main>;
+type Award = {id:string;academic_year:string;year_of_study:number;funding_type:string;provider_name:string;approved_tzs:number;disbursed_tzs:number;spent_tzs:number;tuition_tzs:number;accommodation_tzs:number;meals_tzs:number;books_tzs:number;other_tzs:number;reference:string|null};
+const fmt=(n:number)=>"TZS "+n.toLocaleString("en-US");
+const fields: {key:keyof Award;label:string}[]=[{key:"tuition_tzs",label:"Tuition"},{key:"accommodation_tzs",label:"Accommodation"},{key:"meals_tzs",label:"Meals"},{key:"books_tzs",label:"Books"},{key:"other_tzs",label:"Other activities"}];
+export default function StudentGrants(){
+ const {user}=useAuth();const [rows,setRows]=useState<Award[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");
+ useEffect(()=>{let active=true;(async()=>{setLoading(true);setError("");if(!supabase||!user){setError("Sign in to view funding.");setLoading(false);return;}const {data,error}=await supabase.from("student_funding_awards").select("*").eq("student_id",user.id).order("year_of_study",{ascending:false});if(active){setRows((data??[]) as Award[]);setError(error?.message??"");setLoading(false);}})();return()=>{active=false;};},[user]);
+ const totals=useMemo(()=>rows.reduce((a,r)=>({approved:a.approved+r.approved_tzs,disbursed:a.disbursed+r.disbursed_tzs,spent:a.spent+r.spent_tzs}),{approved:0,disbursed:0,spent:0}),[rows]);
+ const years=useMemo(()=>Array.from(new Set(rows.map(r=>r.year_of_study))).sort((a,b)=>b-a),[rows]);
+ return <main className="mx-auto max-w-2xl space-y-5 px-5 py-6 pb-28">
+  <Link to="/student/profile" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-blue-700"><ArrowLeft size={18}/>Back to profile</Link>
+  <header className="rounded-3xl bg-gradient-to-br from-[#1761c5] to-[#123b86] p-6 text-white"><GraduationCap size={28}/><p className="mt-3 text-xs font-bold uppercase tracking-widest text-blue-100">Student Funding Center</p><h1 className="mt-1 text-2xl font-extrabold">Grants & Loans</h1><p className="mt-2 text-sm text-blue-100">Funding history from your first recorded year of study.</p></header>
+  {error&&<p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+  {loading?<p role="status">Loading funding records…</p>:!error&&rows.length===0?<div className="rounded-2xl border bg-white p-5"><h2 className="font-bold">Fund: NIL</h2><p className="mt-2 text-sm text-slate-600">No institution-entered funding records yet. Ask your institution to add your funding history and allocations.</p></div>:!error&&<>
+   <section className="grid grid-cols-2 gap-3" aria-label="Lifetime funding summary">{[{label:"Total approved since year one",value:totals.approved},{label:"Total disbursed since year one",value:totals.disbursed},{label:"Not yet disbursed",value:totals.approved-totals.disbursed},{label:"Disbursed less recorded spending",value:totals.disbursed-totals.spent}].map(x=><div key={x.label} className="rounded-2xl border bg-white p-4"><p className="text-xs font-semibold text-slate-500">{x.label}</p><p className="mt-2 text-lg font-extrabold text-slate-900">{fmt(x.value)}</p></div>)}</section>
+   <p className="text-xs text-slate-500">Institution-entered figures, not independently verified by a funding agency. Remaining disbursement is not automatically spendable wallet cash.</p>
+   <section className="space-y-4"><h2 className="text-lg font-extrabold">Funding by year</h2>{years.map(year=>{const items=rows.filter(r=>r.year_of_study===year);return <div key={year} className="rounded-2xl border bg-white p-4"><h3 className="text-base font-bold">Year {year}</h3>{items.map(r=><article key={r.id} className="mt-4 border-t pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{r.provider_name}</p><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-blue-800">{r.funding_type.replaceAll("_"," ")}</span></div><p className="mt-1 text-xs text-slate-500">Academic year {r.academic_year}{r.reference?" · Ref: "+r.reference:""}</p><dl className="mt-3 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-slate-500">Approved</dt><dd className="font-bold">{fmt(r.approved_tzs)}</dd></div><div><dt className="text-slate-500">Disbursed</dt><dd className="font-bold">{fmt(r.disbursed_tzs)}</dd></div><div><dt className="text-slate-500">Spent / paid</dt><dd className="font-bold">{fmt(r.spent_tzs)}</dd></div><div><dt className="text-slate-500">Undisbursed</dt><dd className="font-bold">{fmt(r.approved_tzs-r.disbursed_tzs)}</dd></div></dl><h4 className="mt-4 text-sm font-bold">Approved allocations</h4><dl className="mt-2 space-y-2">{fields.map(f=><div key={f.key} className="flex justify-between text-sm"><dt className="text-slate-600">{f.label}</dt><dd className="font-semibold">{fmt(Number(r[f.key])||0)}</dd></div>)}</dl></article>)}</div>;})}</section>
+  </>}
+ </main>;
 }
