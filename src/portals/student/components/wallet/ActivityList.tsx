@@ -5,6 +5,8 @@ const PURPOSE_LABEL: Record<PaymentPurpose, string> = {
   tuition: "Tuition payment",
   fees: "Fees payment",
   merchant: "Merchant payment",
+  transfer: "Money transfer",
+  withdraw: "Wakala withdrawal",
 };
 
 const STATUS_STYLE: Record<PaymentResult["status"], string> = {
