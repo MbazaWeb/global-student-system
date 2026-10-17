@@ -27,11 +27,12 @@ interface Props {
   initialAmount?: number;
   merchant?: { name:string; code:string };
   initialPurpose?: PaymentPurpose;
+  initialSource?: MobileMoneyProvider;
   onClose: () => void;
   onFinished: () => void;
 }
 
-export default function PaymentSheet({ initialPurpose = "wallet_topup", initialAmount, merchant, onClose, onFinished }: Props) {
+export default function PaymentSheet({ initialPurpose = "wallet_topup", initialAmount, initialSource, merchant, onClose, onFinished }: Props) {
   const {user}=useAuth();
   const [step, setStep] = useState<Step>("form");
   const [purpose, setPurpose] = useState<PaymentPurpose>(initialPurpose === "fees" ? "tuition" : initialPurpose);
@@ -45,7 +46,20 @@ export default function PaymentSheet({ initialPurpose = "wallet_topup", initialA
   const admission=enrollment?.admission_number??"";
   const [amountMode, setAmountMode] = useState<"full" | "custom">("custom");
   const [phone, setPhone] = useState("");
-  const [source,setSource]=useState<MobileMoneyProvider|"bank"|"wallet"|"">("");
+  const [source,setSource]=useState<MobileMoneyProvider|"bank"|"wallet"|"">(initialSource??"");
+  const [savePreferred,setSavePreferred]=useState(false);
+  const [savedPhone,setSavedPhone]=useState<{phone:string;source:MobileMoneyProvider}|null>(null);
+  const preferredKey=user?`gss-preferred-topup-v1:${user.id}`:null;
+  useEffect(()=>{
+    if(!preferredKey||initialPurpose!=="wallet_topup")return;
+    try{
+      const raw=localStorage.getItem(preferredKey);
+      const value=raw?JSON.parse(raw):null;
+      if(value&&typeof value.phone==="string"&&PROVIDERS.some(p=>p.id===value.source)&&normalizeTzMsisdn(value.phone)&&detectProvider(normalizeTzMsisdn(value.phone)!)?.id===value.source){
+        setSavedPhone(value);if(!initialSource){setSource(value.source);setPhone(value.phone);}
+      }
+    }catch{/* Preferred number is optional. */}
+  },[preferredKey,initialPurpose,initialSource]);
   const [bankName,setBankName]=useState("");
   const [accountNumber,setAccountNumber]=useState("");
   const linkedBank=getDemoBank(user?.id??"");
@@ -149,6 +163,9 @@ export default function PaymentSheet({ initialPurpose = "wallet_topup", initialA
   }, [step, result, onFinished]);
 
   async function submit(bankOtpToken?:string) {
+    if(savePreferred&&preferredKey&&msisdn&&detectedProvider?.id===source&&source!=="bank"&&source!=="wallet"&&source){
+      try{localStorage.setItem(preferredKey,JSON.stringify({phone:msisdn,source}));setSavedPhone({phone:msisdn,source});}catch{/* Payment remains available if browser storage is blocked. */}
+    }
     if (!sourceValid || !provider || !amountValid) return;
     if(submitting)return;
     if(isBank&&!bankOtpToken){
@@ -197,7 +214,7 @@ export default function PaymentSheet({ initialPurpose = "wallet_topup", initialA
 
         {step === "form" && (
           <div className="mt-5 space-y-5">
-            <fieldset>
+            {initialPurpose!=="wallet_topup"&&<fieldset>
               <legend className="text-sm font-semibold text-slate-700">Purpose</legend>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {PURPOSES.filter(p=>initialPurpose==="merchant"?p.id==="merchant":p.id!=="merchant").map((p) => (
@@ -213,7 +230,7 @@ export default function PaymentSheet({ initialPurpose = "wallet_topup", initialA
                 ))}
               </div>
               <p className="mt-2 text-xs text-slate-500">{PURPOSES.find((p) => p.id === purpose)?.hint}</p>
-            </fieldset>
+            </fieldset>}
             {purpose==="merchant"&&merchant&&<section aria-label="Merchant details" className="rounded-2xl bg-blue-50 p-4"><p className="text-xs text-blue-700">Paying demo merchant</p><h3 className="mt-1 font-bold">{merchant.name}</h3><p className="mt-1 font-mono text-sm">Merchant code: {merchant.code}</p></section>}
 
             {isStudentPayment && <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4" aria-label="Student payment details">
@@ -280,6 +297,8 @@ export default function PaymentSheet({ initialPurpose = "wallet_topup", initialA
                   {provider.name} · {provider.operator}
                 </p>
               )}
+              {purpose==="wallet_topup"&&savedPhone&&<button type="button" onClick={()=>{setSource(savedPhone.source);setPhone(savedPhone.phone);}} className="mt-2 block text-sm font-semibold text-blue-700">Use saved number · {maskMsisdn(savedPhone.phone)}</button>}
+              {purpose==="wallet_topup"&&msisdn&&detectedProvider?.id===source&&<label className="mt-3 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={savePreferred} onChange={e=>setSavePreferred(e.target.checked)}/> Save as my preferred top-up number on this device</label>}
               {phone && !msisdn && <p className="mt-2 text-xs text-red-600">Enter a valid Tanzanian mobile number, for example 0744 123 456.</p>}
               {msisdn && !provider && <p className="mt-2 text-xs text-red-600">This number is not M-Pesa, Airtel Money or Mixx by Yas.</p>}
               {msisdn&&detectedProvider?.id!==source&&<p className="text-xs text-red-600">Enter a number for the selected operator.</p>}
