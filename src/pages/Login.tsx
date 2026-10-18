@@ -2,7 +2,21 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
-import { normalizeTzMsisdn } from "../integrations/mobile-money/phone";
+
+/** Accepts any phone number in international or local format and returns E.164 (with +). */
+function normalizePhone(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("+")) {
+    const digits = trimmed.slice(1).replace(/\D/g, "");
+    return digits.length >= 7 && digits.length <= 15 ? `+${digits}` : null;
+  }
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) return null;
+  if (digits.startsWith("00")) return `+${digits.slice(2)}`;
+  if (digits.startsWith("0")) return `+255${digits.slice(1)}`;
+  return `+${digits}`;
+}
 
 export default function Login() {
   const { user, loading } = useAuth();
@@ -24,8 +38,9 @@ export default function Login() {
     setError("");
     try {
       const value = identifier.trim();
-      const phone = normalizeTzMsisdn(value);
-      if (!phone && !value.includes("@")) {
+      const isEmail = value.includes("@");
+      const phone = isEmail ? null : normalizePhone(value);
+      if (!phone && !isEmail) {
         setError("Enter a valid mobile number or staff email.");
         return;
       }
@@ -34,7 +49,7 @@ export default function Login() {
         return;
       }
       const result = await supabase.auth.signInWithPassword(
-        phone ? { phone: `+${phone}`, password } : { email: value, password }
+        phone ? { phone, password } : { email: value, password }
       );
       if (result.error) setError(result.error.message);
     } catch {
@@ -70,7 +85,7 @@ export default function Login() {
               required
               type="text"
               autoComplete="username"
-              placeholder="07XXXXXXXX or staff@example.com"
+              placeholder="+255 7XX XXX XXX or staff@example.com"
               className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-base outline-none focus:border-blue-600"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}

@@ -2,9 +2,28 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
-import { normalizeTzMsisdn } from "../integrations/mobile-money/phone";
 
 const stages = ["Mobile number", "Verify code", "Set password"];
+
+/** Accepts any phone number in international or local format and returns E.164 (with +). */
+function normalizePhone(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  // If it already starts with +, keep as-is (user entered international format).
+  if (trimmed.startsWith("+")) {
+    const digits = trimmed.slice(1).replace(/\D/g, "");
+    return digits.length >= 7 && digits.length <= 15 ? `+${digits}` : null;
+  }
+  // Strip non-digits.
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) return null;
+  // If it starts with 00 (international prefix), convert to +.
+  if (digits.startsWith("00")) return `+${digits.slice(2)}`;
+  // If it starts with 0 (local prefix), assume Tanzania (+255) as default.
+  if (digits.startsWith("0")) return `+255${digits.slice(1)}`;
+  // Otherwise assume it's already in international format without +.
+  return `+${digits}`;
+}
 
 export default function Register() {
   const { user, loading } = useAuth();
@@ -21,7 +40,7 @@ export default function Register() {
 
   if (!loading && user && !inFlow) return <Navigate to="/dashboard" replace />;
 
-  const mobile = normalizeTzMsisdn(phone);
+  const normalizedPhone = normalizePhone(phone);
 
   async function next(e: FormEvent) {
     e.preventDefault();
@@ -33,16 +52,23 @@ export default function Register() {
     setBusy(true);
     try {
       if (step === 0) {
-        if (!mobile) throw new Error("Enter a valid Tanzanian mobile number.");
-        const { error } = await supabase.auth.signInWithOtp({ phone: `+${mobile}` });
-        if (error) throw error;
+        if (!normalizedPhone) throw new Error("Enter a valid mobile number (e.g. +255 7XX XXX XXX or 07XXXXXXXX).");
+        const { error } = await supabase.auth.signInWithOtp({ phone: normalizedPhone });
+        if (error) {
+          // Supabase returns this when phone auth isn't enabled or no SMS provider is configured.
+          // In development with test OTP enabled, this should not happen.
+          if (error.message.toLowerCase().includes("phone") || error.message.toLowerCase().includes("provider")) {
+            throw new Error("Phone authentication is not enabled. Ask your admin to enable Phone Auth and set a test OTP code in the Supabase dashboard (Authentication → Providers → Phone).");
+          }
+          throw error;
+        }
         setStep(1);
         setMessage("We sent a verification code to your phone.");
       } else if (step === 1) {
-        if (!mobile) throw new Error("Enter your mobile number again.");
+        if (!normalizedPhone) throw new Error("Enter your mobile number again.");
         if (!/^\d{6,8}$/.test(otp)) throw new Error("Enter the verification code.");
         setInFlow(true);
-        const { error } = await supabase.auth.verifyOtp({ phone: `+${mobile}`, token: otp, type: "sms" });
+        const { error } = await supabase.auth.verifyOtp({ phone: normalizedPhone, token: otp, type: "sms" });
         if (error) throw error;
         setOtp("");
         setStep(2);
@@ -100,7 +126,7 @@ export default function Register() {
           )}
           {step === 1 && (
             <>
-              <p className="text-sm text-slate-600">Enter the code sent to {mobile ? `+${mobile}` : "your phone"}.</p>
+              <p className="text-sm text-slate-600">Enter the code sent to {normalizedPhone ?? "your phone"}.</p>
               <label className="text-sm font-semibold">
                 Verification code
                 <input className={input} required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
