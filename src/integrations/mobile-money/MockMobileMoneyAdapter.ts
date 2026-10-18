@@ -10,14 +10,13 @@ const SETTLE_AFTER_MS = 4_000;
  * Per the project rule: the mock adapter may persist to localStorage only
  * when VITE_MOBILE_MONEY_MODE is unset or "sandbox".
  *
- * If VITE_MOBILE_MONEY_MODE is "live", this mock adapter throws at module
- * load time. The mock adapter is sandbox-only and cannot process live
- * payments. Using it in live mode would give users a false sense of real
- * payment processing. Production must swap walletService's adapter for
- * one that calls a JWT-verified Supabase Edge Function.
+ * If VITE_MOBILE_MONEY_MODE is "live", every payment call on this adapter is
+ * rejected with a clear error, and the app keeps loading. The adapter is
+ * sandbox-only and never processes real money. Production must use an adapter
+ * that calls a JWT-verified Supabase Edge Function.
  *
  * Manual check: run `node scripts/test_mock_adapter_mode.mjs` to verify
- * the live-mode throw and the localStorage persistence guard.
+ * the live-mode rejection and the localStorage persistence guard.
  */
 const MODE = import.meta.env.VITE_MOBILE_MONEY_MODE;
 const LIVE_MODE = MODE === "live";

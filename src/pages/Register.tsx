@@ -1,37 +1,139 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { supabase } from "../lib/supabase";
 import { normalizeTzMsisdn } from "../integrations/mobile-money/phone";
-import { saveDemoEnrollment } from "../demo/demoEnrollment";
 
-const checks=["Mobile number format","Demo OTP code","Identity details captured","Student enrollment details captured","PIN format checked"] as const;
-const stages=["Mobile number","OTP verification","Identity","Student details","Security PIN"] as const;
-export default function Register(){
- const {user,loading}=useAuth();
- const [step,setStep]=useState(0);const [complete,setComplete]=useState(false);const [checking,setChecking]=useState(false);const [checkIndex,setCheckIndex]=useState(0);const [phone,setPhone]=useState("");const [otp,setOtp]=useState("");const [minor,setMinor]=useState(false);const [name,setName]=useState("");const [nida,setNida]=useState("");const [guardian,setGuardian]=useState("");const [registration,setRegistration]=useState("");const [university,setUniversity]=useState("");const [year,setYear]=useState("1");const [pin,setPin]=useState("");const [confirmPin,setConfirmPin]=useState("");const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
- if(!loading&&user)return <Navigate to="/dashboard" replace/>;
- useEffect(()=>{if(!checking)return;const timer=window.setTimeout(()=>{if(checkIndex>=checks.length){setChecking(false);setComplete(true);}else setCheckIndex(n=>n+1);},700);return ()=>window.clearTimeout(timer);},[checking,checkIndex]);
- const mobile=normalizeTzMsisdn(phone);
- async function next(e:FormEvent){e.preventDefault();setMessage("");
- setBusy(true);
- try{
- if(step===0){if(!mobile)throw new Error("Enter a valid Tanzanian mobile number.");setStep(1);setMessage("DEMO MODE: Enter mock OTP 123456. No SMS has been sent.");}
- else if(step===1){if(!mobile||!/^\d{6,8}$/.test(otp))throw new Error("Enter the SMS OTP.");if(otp!=="123456")throw new Error("Incorrect demo OTP. Use 123456.");if(mobile==="255682112233"){setName("David William");setNida("19990101-12345-00000-123");setMessage("Demo operator record loaded. Name and NIDA are sample data, not verified.");}else{setName("");setNida("");setMessage("No demo operator record found for this number. Enter your details manually; they are not verified.");}setStep(2);}
- else if(step===2){if(mobile==="255682112233"){setRegistration("UD-BA-12345678");setUniversity("University of Dar es Salaam");}if(!name.trim())throw new Error("Enter full name.");if(minor&&!guardian.trim())throw new Error("Enter guardian name.");if(!/^\d{8}-\d{5}-\d{5}-\d{3}$/.test(nida))throw new Error(minor?"Enter guardian NIDA in format 19990101-12345-00000-123":"NIDA format: 19990101-12345-00000-123");setStep(3);}
- else if(step===3){if(!registration.trim()||!university.trim())throw new Error("Enter student registration number and university.");if(!Number.isInteger(Number(year))||Number(year)<1||Number(year)>12)throw new Error("Select a valid year of study.");setStep(4);}
- else {if(!/^\d{4}$/.test(pin)||pin!==confirmPin)throw new Error("Enter matching 4-digit PINs.");saveDemoEnrollment({phone:mobile!,pin,name,registration,university,year});setPin("");setConfirmPin("");setCheckIndex(0);setChecking(true);}
- }catch(e){setMessage(e instanceof Error?e.message:"Unable to continue.");}finally{setBusy(false);}
- }
- if(checking)return <main className="flex min-h-[100dvh] items-center justify-center bg-slate-50 px-4"><section className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-xl"><h1 className="text-2xl font-extrabold">Checking demo registration</h1><p className="mt-2 text-sm text-slate-600">Simulated checks only · No external identity or university verification</p><div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-blue-600 transition-all duration-700" style={{width:`${Math.round(checkIndex/checks.length*100)}%`}}/></div><p className="mt-2 text-right text-sm font-bold text-blue-700">{Math.round(checkIndex/checks.length*100)}%</p><ol className="mt-6 space-y-3">{checks.map((label,i)=><li key={label} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3"><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${i<checkIndex?"bg-emerald-100 text-emerald-700":i===checkIndex?"bg-blue-100 text-blue-700":"bg-slate-100 text-slate-400"}`}>{i<checkIndex?"✓":i===checkIndex?<span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"/>:i+1}</span><span className="flex-1 text-sm font-semibold">{label}</span><span className="text-xs text-slate-500">{i<checkIndex?"Demo complete":i===checkIndex?"Checking…":"Waiting"}</span></li>)}</ol></section></main>;
- if(complete)return <main className="flex min-h-[100dvh] items-center justify-center bg-slate-50 px-4"><section className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-4xl text-emerald-700">✓</div><h1 className="text-3xl font-extrabold">Demo registration complete</h1><p className="mt-4 text-slate-600">Your onboarding walkthrough has finished, {name}. No real account was created, no PIN was saved, and identity or university records were not verified.</p><p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">You can sign in to the isolated demo dashboard using your mobile number and PIN during this browser session. No real account or access to protected data is created.</p><button className="mt-6 w-full rounded-xl bg-blue-700 p-3 font-bold text-white" onClick={()=>{setComplete(false);setStep(0);setPhone("");setOtp("");setName("");setNida("");setGuardian("");setRegistration("");setUniversity("");setMessage("");}}>Start another demo</button><Link className="mt-4 block text-sm font-semibold text-blue-700" to="/login">Go to sign in</Link></section></main>;
- const input="mt-2 block w-full rounded-xl border border-slate-200 bg-white p-3.5 outline-none focus:border-blue-600";
- return <main className="flex min-h-[100dvh] items-center justify-center bg-slate-50 px-4 py-10"><section className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl sm:p-8"><div className="mb-6 flex items-center gap-3"><img src="/s-wallet.svg" alt="S Wallet" className="h-14 w-14"/><div><h1 className="text-2xl font-extrabold text-slate-900">Student registration</h1><p className="text-sm text-slate-500">Demo onboarding · No real identity verification</p></div></div><div className="mb-3 flex gap-2" aria-label="Registration progress">{stages.map((label,i)=><div key={label} title={label} className={`h-2 flex-1 rounded-full transition-all duration-500 ${i<=step?"bg-blue-600":"bg-slate-200"}`}/>)}</div><p className="mb-6 text-sm font-semibold text-blue-700">Step {step+1} of 5 · {stages[step]}</p>
- <form onSubmit={next} className="grid animate-[fadeIn_350ms_ease-out] gap-4" key={step}>
- {step===0&&<><p className="text-sm text-slate-600">Start with your Tanzanian mobile number.</p><label className="text-sm font-semibold">Mobile number<input className={input} required type="tel" autoComplete="tel" placeholder="07XXXXXXXX" value={phone} onChange={e=>setPhone(e.target.value)}/></label></>}
- {step===1&&<><p className="text-sm text-slate-600">Demo OTP for {phone} · Use 123456</p><label className="text-sm font-semibold">OTP code<input className={input} required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,""))}/></label></>}
- {step===2&&<><label className="flex items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={minor} onChange={e=>setMinor(e.target.checked)}/> Registering a minor (guardian-assisted)</label><label className="text-sm font-semibold">Student full name {mobile==="255682112233"?"(Demo operator record)":""}<input className={input} required value={name} onChange={e=>setName(e.target.value)}/></label>{minor?<label className="text-sm font-semibold">Guardian full name<input className={input} required value={guardian} onChange={e=>setGuardian(e.target.value)}/></label>:<label className="text-sm font-semibold">NIDA number {mobile==="255682112233"?"(Demo record)":""}<input className={input} required placeholder="19990101-12345-00000-123" pattern="[0-9]{8}-[0-9]{5}-[0-9]{5}-[0-9]{3}" value={nida} onChange={e=>setNida(e.target.value)}/></label>}{minor&&<label className="text-sm font-semibold">Guardian NIDA number<input className={input} required placeholder="19990101-12345-00000-123" pattern="[0-9]{8}-[0-9]{5}-[0-9]{5}-[0-9]{3}" value={nida} onChange={e=>setNida(e.target.value)}/></label>}<p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">NIDA and SIM ownership matching require authorized government/operator integrations. No identity match is claimed.</p></>}
- {step===3&&<><label className="text-sm font-semibold">Student registration number<input className={input} required value={registration} onChange={e=>setRegistration(e.target.value)}/></label><label className="text-sm font-semibold">University / college<input className={input} required placeholder="Enter institution name" value={university} onChange={e=>setUniversity(e.target.value)}/></label><label className="text-sm font-semibold">Year of study<select className={input} value={year} onChange={e=>setYear(e.target.value)}>{Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>Year {i+1}</option>)}</select></label><p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Institution registry synchronization is pending integration.</p></>}
- {step===4&&<><p className="text-sm text-slate-600">Choose a 4-digit PIN. This step is not yet connected to a secure server-side PIN service.</p><label className="text-sm font-semibold">4-digit PIN<input className={input} required type="password" inputMode="numeric" autoComplete="new-password" pattern="[0-9]{4}" maxLength={4} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))}/></label><label className="text-sm font-semibold">Confirm PIN<input className={input} required type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={confirmPin} onChange={e=>setConfirmPin(e.target.value.replace(/\D/g,""))}/></label></>}
- {message&&<p role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{message}</p>}
- <div className="flex gap-3">{step>0&&<button type="button" onClick={()=>{setStep(s=>s-1);setMessage("");}} className="rounded-xl border px-5 py-3 font-semibold">Back</button>}<button disabled={busy||loading} className="flex-1 rounded-xl bg-blue-700 p-3 font-bold text-white disabled:opacity-60">{busy?"Verifying…":step===4?"Finish demo registration":"Continue →"}</button></div></form><Link className="mt-6 block text-center text-sm font-semibold text-blue-700" to="/login">Already registered? Sign in</Link></section></main>;
+const stages = ["Mobile number", "Verify code", "Set password"];
+
+export default function Register() {
+  const { user, loading } = useAuth();
+  const [step, setStep] = useState(0);
+  // True while registration is in progress. Stops the redirect to /dashboard that would
+  // otherwise fire as soon as the OTP creates a session, before the password step.
+  const [inFlow, setInFlow] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  if (!loading && user && !inFlow) return <Navigate to="/dashboard" replace />;
+
+  const mobile = normalizeTzMsisdn(phone);
+
+  async function next(e: FormEvent) {
+    e.preventDefault();
+    setMessage("");
+    if (!supabase) {
+      setMessage("Service is temporarily unavailable.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (step === 0) {
+        if (!mobile) throw new Error("Enter a valid Tanzanian mobile number.");
+        const { error } = await supabase.auth.signInWithOtp({ phone: `+${mobile}` });
+        if (error) throw error;
+        setStep(1);
+        setMessage("We sent a verification code to your phone.");
+      } else if (step === 1) {
+        if (!mobile) throw new Error("Enter your mobile number again.");
+        if (!/^\d{6,8}$/.test(otp)) throw new Error("Enter the verification code.");
+        setInFlow(true);
+        const { error } = await supabase.auth.verifyOtp({ phone: `+${mobile}`, token: otp, type: "sms" });
+        if (error) throw error;
+        setOtp("");
+        setStep(2);
+        setMessage("");
+      } else {
+        if (password.length < 6) throw new Error("Use at least 6 characters.");
+        if (password !== confirm) throw new Error("Passwords do not match.");
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setPassword("");
+        setConfirm("");
+        setInFlow(false);
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const input = "mt-2 block w-full rounded-xl border border-slate-200 bg-white p-3.5 outline-none focus:border-blue-600";
+
+  return (
+    <main className="flex min-h-[100dvh] items-center justify-center bg-slate-50 px-4 py-10">
+      <section className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl sm:p-8">
+        <div className="mb-6 flex items-center gap-3">
+          <img src="/s-wallet.svg" alt="S Wallet" className="h-14 w-14" />
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900">Student registration</h1>
+            <p className="text-sm text-slate-500">Verify your phone, then set a password.</p>
+          </div>
+        </div>
+        <div className="mb-3 flex gap-2" aria-label="Registration progress">
+          {stages.map((label, i) => (
+            <div key={label} title={label} className={`h-2 flex-1 rounded-full transition-all duration-500 ${i <= step ? "bg-blue-600" : "bg-slate-200"}`} />
+          ))}
+        </div>
+        <p className="mb-6 text-sm font-semibold text-blue-700">Step {step + 1} of 3 · {stages[step]}</p>
+
+        {!supabase && import.meta.env.DEV && (
+          <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+            Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local.
+          </p>
+        )}
+
+        <form onSubmit={next} className="grid gap-4" key={step}>
+          {step === 0 && (
+            <>
+              <p className="text-sm text-slate-600">Start with your Tanzanian mobile number.</p>
+              <label className="text-sm font-semibold">
+                Mobile number
+                <input className={input} required type="tel" autoComplete="tel" placeholder="07XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </label>
+            </>
+          )}
+          {step === 1 && (
+            <>
+              <p className="text-sm text-slate-600">Enter the code sent to {mobile ? `+${mobile}` : "your phone"}.</p>
+              <label className="text-sm font-semibold">
+                Verification code
+                <input className={input} required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
+              </label>
+            </>
+          )}
+          {step === 2 && (
+            <>
+              <p className="text-sm text-slate-600">Choose a password of at least 6 characters. You will use it with your mobile number to sign in.</p>
+              <label className="text-sm font-semibold">
+                Password
+                <input className={input} required type="password" autoComplete="new-password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+              </label>
+              <label className="text-sm font-semibold">
+                Confirm password
+                <input className={input} required type="password" autoComplete="new-password" minLength={6} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+              </label>
+            </>
+          )}
+          {message && <p role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{message}</p>}
+          <div className="flex gap-3">
+            {step === 1 && (
+              <button type="button" onClick={() => { setStep(0); setOtp(""); setMessage(""); }} className="rounded-xl border px-5 py-3 font-semibold">
+                Change number
+              </button>
+            )}
+            <button disabled={busy || loading} className="flex-1 rounded-xl bg-blue-700 p-3 font-bold text-white disabled:opacity-60">
+              {busy ? "Please wait…" : step === 2 ? "Finish" : "Continue →"}
+            </button>
+          </div>
+        </form>
+        <Link className="mt-6 block text-center text-sm font-semibold text-blue-700" to="/login">Already registered? Sign in</Link>
+      </section>
+    </main>
+  );
 }
